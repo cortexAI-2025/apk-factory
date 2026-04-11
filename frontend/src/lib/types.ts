@@ -62,6 +62,50 @@ export interface BuildFix {
   errorSummary: string;
   fixDescription: string;
   filesModified: string[];
+  patches?: FilePatch[];
   success: boolean;
   createdAt: string;
+}
+
+export interface FilePatch {
+  file: string;
+  before: string;
+  after: string;
+  diff: string;
+}
+
+// ── Metrics ──────────────────────────────────────────────────────────────────
+
+export interface BuildStats {
+  totalBuilds: number;
+  successBuilds: number;
+  failedBuilds: number;
+  activeBuilds: number;
+  successRate: number;
+  avgDurationSec: number;
+  buildsLastHour: number;
+  totalCredits: number;
+  mavenCacheHits: number;
+  aiFixesApplied: number;
+}
+
+export interface LiveBuildItem {
+  id: string;
+  status: string;
+  buildType: string;
+  createdAt: string;
+  startedAt?: string;
+  finishedAt?: string;
+  duration?: number;
+  errorMessage?: string;
+  costCredits?: number;
+  runtime?: string;
+  project: { id: string; name: string };
+}
+
+export interface ChartPoint {
+  date: string;
+  total: number;
+  success: number;
+  failed: number;
 }

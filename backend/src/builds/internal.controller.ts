@@ -56,6 +56,14 @@ export class InternalBuildsController {
         ? Math.floor((now.getTime() - build.startedAt.getTime()) / 1000)
         : undefined;
 
+    // Compute billable CPU-seconds and credit cost on terminal states
+    const CREDIT_RATE  = 0.001; // 1 credit per 1000 cpu-seconds
+    const cpuCount     = parseFloat(this.config.get('BUILD_CPUS', '2'));
+    const cpuSeconds   = duration !== undefined ? duration * cpuCount : undefined;
+    const costCredits  = cpuSeconds !== undefined
+      ? Math.round(cpuSeconds * CREDIT_RATE * 1000) / 1000
+      : undefined;
+
     const updated = await this.prisma.build.update({
       where: { id: buildId },
       data: {
@@ -65,7 +73,7 @@ export class InternalBuildsController {
         errorMessage: body.errorMessage,
         ...(body.status === 'BUILDING' && !build?.startedAt ? { startedAt: now } : {}),
         ...(['SUCCESS', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(body.status)
-          ? { finishedAt: now, duration }
+          ? { finishedAt: now, duration, cpuSeconds, costCredits }
           : {}),
       },
     });
@@ -122,6 +130,7 @@ export class InternalBuildsController {
       filesModified: string[];
       errorSummary: string;
       success: boolean;
+      patches?: any[];
     },
   ) {
     this.authorize(secret);
@@ -134,6 +143,7 @@ export class InternalBuildsController {
         fixDescription: body.description,
         filesModified: body.filesModified,
         success: body.success,
+        patches: body.patches || [],
       },
     });
 

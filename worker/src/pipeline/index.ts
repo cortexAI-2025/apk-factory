@@ -56,10 +56,10 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
       } catch {}
     },
 
-    reportFix: async (attempt, description, filesModified, errorSummary, success) => {
+    reportFix: async (attempt, description, filesModified, errorSummary, success, patches) => {
       try {
         await apiPost(`/internal/builds/${input.buildId}/fixes`, {
-          attempt, description, filesModified, errorSummary, success,
+          attempt, description, filesModified, errorSummary, success, patches: patches || [],
         });
       } catch {}
     },

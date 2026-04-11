@@ -45,7 +45,7 @@ export interface PipelineContext {
 
   // Logging callback
   log: (level: 'info' | 'warn' | 'error' | 'debug', message: string) => Promise<void>;
-  reportFix: (attempt: number, description: string, files: string[], summary: string, success: boolean) => Promise<void>;
+  reportFix: (attempt: number, description: string, files: string[], summary: string, success: boolean, patches?: any[]) => Promise<void>;
   updateStatus: (status: string, extra?: Record<string, unknown>) => Promise<void>;
   updateProgress: (percent: number, phase: string) => Promise<void>;
 }

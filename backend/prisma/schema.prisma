@@ -101,32 +101,36 @@ model Project {
 }
 
 model Build {
-  id              String      @id @default(uuid())
-  status          BuildStatus @default(PENDING)
-  buildType       BuildType   @default(DEBUG)
-  queueJobId      String?
-  startedAt       DateTime?
-  finishedAt      DateTime?
-  duration        Int?
-  apkPath         String?
-  apkSize         Int?
-  apkUrl          String?
-  publicLink      String?
+  id               String      @id @default(uuid())
+  status           BuildStatus @default(PENDING)
+  buildType        BuildType   @default(DEBUG)
+  queueJobId       String?
+  startedAt        DateTime?
+  finishedAt       DateTime?
+  duration         Int?
+  apkPath          String?
+  apkSize          Int?
+  apkUrl           String?
+  publicLink       String?
   publicLinkExpiry DateTime?
-  qrCodeUrl       String?
-  errorMessage    String?
-  autoFixAttempts Int         @default(0)
-  maxFixAttempts  Int         @default(3)
-  dockerContainer String?
-  gradleCommand   String?
-  environment     Json?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
-  projectId       String
-  project         Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  qrCodeUrl        String?
+  errorMessage     String?
+  autoFixAttempts  Int         @default(0)
+  maxFixAttempts   Int         @default(3)
+  dockerContainer  String?
+  gradleCommand    String?
+  runtime          String?     // docker | gvisor | firecracker
+  mavenCacheHit    Boolean     @default(false)
+  cpuSeconds       Float?      // billable compute time
+  costCredits      Float?      // estimated cost in credits
+  environment      Json?
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+  projectId        String
+  project          Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  logs            BuildLog[]
-  fixes           BuildFix[]
+  logs             BuildLog[]
+  fixes            BuildFix[]
 
   @@map("builds")
 }
@@ -143,15 +147,17 @@ model BuildLog {
 }
 
 model BuildFix {
-  id            String   @id @default(uuid())
-  attempt       Int
-  errorSummary  String
+  id             String   @id @default(uuid())
+  attempt        Int
+  errorSummary   String
   fixDescription String
-  filesModified Json
-  success       Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  buildId       String
-  build         Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+  filesModified  Json
+  /// Array of {file, before, after, diff} — unified diff per patched file
+  patches        Json?
+  success        Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  buildId        String
+  build          Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
 
   @@map("build_fixes")
 }

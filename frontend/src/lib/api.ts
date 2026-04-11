@@ -73,3 +73,10 @@ export const buildsApi = {
   cancel: (projectId: string, buildId: string) =>
     api.post(`/projects/${projectId}/builds/${buildId}/cancel`).then((r) => r.data),
 };
+
+// --- Metrics ---
+export const metricsApi = {
+  stats: () => api.get('/metrics/stats').then((r) => r.data),
+  feed:  (limit = 20) => api.get('/metrics/feed', { params: { limit } }).then((r) => r.data),
+  chart: (days = 30)  => api.get('/metrics/chart', { params: { days } }).then((r) => r.data),
+};
