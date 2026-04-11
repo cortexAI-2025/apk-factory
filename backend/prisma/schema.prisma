@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserPlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum ProjectSourceType {
+  ZIP_UPLOAD
+  GITHUB_URL
+  GITHUB_OAUTH
+  AI_GENERATED
+}
+
+enum ProjectType {
+  ANDROID_NATIVE
+  FLUTTER
+  REACT_NATIVE
+  UNKNOWN
+}
+
+enum BuildStatus {
+  PENDING
+  QUEUED
+  BUILDING
+  FIXING
+  SUCCESS
+  FAILED
+  CANCELLED
+  TIMEOUT
+}
+
+enum BuildType {
+  DEBUG
+  RELEASE
+  AAB
+}
+
+model User {
+  id              String    @id @default(uuid())
+  email           String    @unique
+  passwordHash    String?
+  name            String?
+  avatarUrl       String?
+  githubId        String?   @unique
+  githubToken     String?
+  plan            UserPlan  @default(FREE)
+  buildsUsed      Int       @default(0)
+  buildsLimit     Int       @default(5)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  projects        Project[]
+  apiKeys         ApiKey[]
+
+  @@map("users")
+}
+
+model ApiKey {
+  id          String    @id @default(uuid())
+  name        String
+  keyHash     String    @unique
+  lastUsedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("api_keys")
+}
+
+model Project {
+  id              String            @id @default(uuid())
+  name            String
+  description     String?
+  sourceType      ProjectSourceType
+  sourceUrl       String?
+  sourcePath      String?
+  projectType     ProjectType       @default(UNKNOWN)
+  gradleVersion   String?
+  sdkVersion      Int?
+  kotlinVersion   String?
+  javaVersion     String?
+  compatibilityScore Int?
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  userId          String
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  builds          Build[]
+
+  @@map("projects")
+}
+
+model Build {
+  id              String      @id @default(uuid())
+  status          BuildStatus @default(PENDING)
+  buildType       BuildType   @default(DEBUG)
+  queueJobId      String?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  duration        Int?
+  apkPath         String?
+  apkSize         Int?
+  apkUrl          String?
+  publicLink      String?
+  publicLinkExpiry DateTime?
+  qrCodeUrl       String?
+  errorMessage    String?
+  autoFixAttempts Int         @default(0)
+  maxFixAttempts  Int         @default(3)
+  dockerContainer String?
+  gradleCommand   String?
+  environment     Json?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  projectId       String
+  project         Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  logs            BuildLog[]
+  fixes           BuildFix[]
+
+  @@map("builds")
+}
+
+model BuildLog {
+  id        String   @id @default(uuid())
+  level     String   @default("info")
+  message   String
+  timestamp DateTime @default(now())
+  buildId   String
+  build     Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@map("build_logs")
+}
+
+model BuildFix {
+  id            String   @id @default(uuid())
+  attempt       Int
+  errorSummary  String
+  fixDescription String
+  filesModified Json
+  success       Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  buildId       String
+  build         Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@map("build_fixes")
+}

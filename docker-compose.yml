@@ -1,0 +1,159 @@
+version: '3.9'
+
+services:
+  # ─── Infrastructure ──────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: apk_factory
+      POSTGRES_USER: apk_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-apk_password_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U apk_user -d apk_factory"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:-redis_password_change_me} --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # ─── Backend API ──────────────────────────────────────────────
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://apk_user:${POSTGRES_PASSWORD:-apk_password_change_me}@postgres:5432/apk_factory
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password_change_me}
+      JWT_SECRET: ${JWT_SECRET:-change_this_jwt_secret_in_production}
+      JWT_EXPIRY: 7d
+      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:4000}
+      WORKER_SECRET: ${WORKER_SECRET:-worker_secret_change_me}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      UPLOADS_PATH: /app/uploads
+    volumes:
+      - uploads_data:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # ─── Frontend ─────────────────────────────────────────────────
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${API_BASE_URL:-http://localhost:4000}
+      NEXT_PUBLIC_WS_URL: ${API_BASE_URL:-http://localhost:4000}
+    depends_on:
+      - backend
+
+  # ─── Build Worker ─────────────────────────────────────────────
+  worker:
+    build:
+      context: .
+      dockerfile: docker/worker/Dockerfile
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password_change_me}
+      API_BASE_URL: http://backend:4000
+      WORKER_SECRET: ${WORKER_SECRET:-worker_secret_change_me}
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANDROID_HOME: /opt/android-sdk
+      JAVA_HOME: /usr/lib/jvm/java-17-openjdk-amd64
+    volumes:
+      - uploads_data:/app/uploads
+      - android_sdk:/opt/android-sdk
+      - gradle_cache:/root/.gradle
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      redis:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          cpus: '4'
+          memory: 6G
+        reservations:
+          cpus: '1'
+          memory: 2G
+
+  # ─── Android SDK Builder Image (run once to init SDK) ─────────
+  android-builder:
+    build:
+      context: .
+      dockerfile: docker/android-builder/Dockerfile
+    image: apk-factory/android-builder:latest
+    volumes:
+      - android_sdk:/opt/android-sdk
+      - gradle_cache:/root/.gradle
+      - uploads_data:/app/uploads
+    profiles:
+      - build   # only started explicitly or by worker
+
+  # ─── Queue Monitor (Bull Board) ───────────────────────────────
+  bull-board:
+    image: particularly/bull-board:latest
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-redis_password_change_me}
+    depends_on:
+      - redis
+    profiles:
+      - monitoring
+
+volumes:
+  postgres_data:
+  redis_data:
+  uploads_data:
+  android_sdk:
+  gradle_cache:
+
+networks:
+  default:
+    name: apk-factory-network

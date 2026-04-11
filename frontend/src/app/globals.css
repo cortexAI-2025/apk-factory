@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+  }
+  * { @apply border-gray-800; }
+  body { @apply bg-gray-950 text-gray-100; }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: #374151 transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar { width: 6px; }
+  .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background-color: #374151;
+    border-radius: 3px;
+  }
+  .glass {
+    @apply bg-white/5 backdrop-blur-sm border border-white/10;
+  }
+  .gradient-border {
+    background: linear-gradient(135deg, rgba(34,197,94,0.15), rgba(59,130,246,0.15));
+    border: 1px solid rgba(34,197,94,0.3);
+  }
+}
+
+/* Terminal / Console styles */
+.console-line { @apply font-mono text-sm leading-relaxed; }
+.console-error { @apply text-red-400; }
+.console-warn  { @apply text-yellow-400; }
+.console-info  { @apply text-gray-200; }
+.console-debug { @apply text-gray-500; }
+
+/* Animations */
+@keyframes blink { 0%,100% { opacity: 1; } 50% { opacity: 0; } }
+.cursor-blink { animation: blink 1s step-end infinite; }
