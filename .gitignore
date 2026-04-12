@@ -41,3 +41,9 @@ prisma/migrations/
 
 # Docker
 .dockerignore
+
+# Keystores — NEVER commit keystore files or credentials
+keystores/*.jks
+keystores/*.keystore
+keystores/*.p12
+keystores/KEYSTORE_CREDENTIALS.txt
