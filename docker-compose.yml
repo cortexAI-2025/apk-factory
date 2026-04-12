@@ -169,13 +169,9 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       # Shared uploads (APKs written here)
       - uploads_data:/app/uploads
-      # Android SDK and Gradle cache are read-only (pre-built by android-builder)
-      - android_sdk:/opt/android-sdk:ro
-      - gradle_cache:/opt/gradle-home:ro
-      # Workspace dir for build sandboxes (temporary project dirs)
-      - build_workspaces:/tmp/apk-factory/workspaces
-      # Seccomp profile
-      - ./docker/android-builder/seccomp.json:/etc/apk-factory/seccomp.json:ro
+      # Workspace: host bind-mount so spawned build containers can access the
+      # same path via Docker daemon (Docker volumes are not visible to DinD).
+      - /tmp/apk-factory/workspaces:/tmp/apk-factory/workspaces
 
     depends_on:
       redis:
@@ -192,17 +188,16 @@ services:
     security_opt:
       - no-new-privileges:true
 
-  # ─── Android SDK pre-build (run once) ─────────────────────────────────────
-  # docker-compose run --rm android-builder-init
+  # ─── Android builder image (run once before first build) ──────────────────
+  # Builds the Docker image used for all sandboxed APK builds.
+  # The SDK and Gradle wrapper ZIPs are baked directly into this image.
+  # Run:  docker-compose run --rm android-builder-init
   android-builder-init:
     build:
       context: .
       dockerfile: docker/android-builder/Dockerfile
     image: apk-factory/android-builder:latest
-    entrypoint: ["/bin/bash", "-c", "echo 'Android SDK ready' && java -version && sdkmanager --list_installed | head -20"]
-    volumes:
-      - android_sdk:/opt/android-sdk
-      - gradle_cache:/opt/gradle-home
+    entrypoint: ["/bin/bash", "-c", "echo '✓ android-builder image ready' && java -version 2>&1 && echo 'SDK:' && ls /opt/android-sdk/platforms/ 2>/dev/null || echo 'SDK not found'"]
     profiles:
       - init
 
@@ -227,9 +222,6 @@ volumes:
   postgres_data:
   redis_data:
   uploads_data:
-  android_sdk:
-  gradle_cache:
-  build_workspaces:
 
 networks:
   default:

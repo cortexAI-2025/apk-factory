@@ -132,6 +132,12 @@ export abstract class BaseDockerRuntime implements IRuntime {
     gradleCommand: string,
     opts: ContainerRunOptions,
   ): string[] {
+    // When running via Docker socket (DinD), the worker's internal mount paths
+    // are NOT visible to the Docker daemon host.  We therefore do NOT mount
+    // android_sdk or gradle_cache here — those are already baked into the
+    // android-builder image at /opt/android-sdk and /opt/gradle-home.
+    // The entrypoint.sh copies the Gradle wrapper zip to /tmp/gradle-home so
+    // it stays writable even though the root filesystem is read-only.
     const args: string[] = [
       '--rm', '--name', containerName,
       ...this.runtimeFlags(),
@@ -145,14 +151,12 @@ export abstract class BaseDockerRuntime implements IRuntime {
       '--security-opt', 'no-new-privileges:true',
       '--cap-drop', 'ALL',
       '--read-only',
-      '--tmpfs', '/tmp:size=512m,exec',
-      '--tmpfs', '/root/.gradle/caches:size=100m',
+      // /tmp holds Gradle home copy, Maven local cache, dex temp files — needs exec
+      '--tmpfs', '/tmp:size=2g,exec',
       '--volume', `${projectPath}:/workspace:rw,z`,
-      '--volume', `${SANDBOX.ANDROID_SDK_HOST}:${SANDBOX.ANDROID_SDK_CTR}:ro`,
-      '--volume', `${SANDBOX.GRADLE_CACHE_HOST}:${SANDBOX.GRADLE_CACHE_CTR}:ro`,
       ...(opts.extraVolumes || []),
-      '--env', `ANDROID_HOME=${SANDBOX.ANDROID_SDK_CTR}`,
-      '--env', `ANDROID_SDK_ROOT=${SANDBOX.ANDROID_SDK_CTR}`,
+      '--env', 'ANDROID_HOME=/opt/android-sdk',
+      '--env', 'ANDROID_SDK_ROOT=/opt/android-sdk',
       '--env', 'GRADLE_OPTS=-Dorg.gradle.daemon=false -Xmx2048m -Dfile.encoding=UTF-8',
       '--env', 'TERM=dumb', '--env', 'CI=true',
       ...(opts.extraEnv || []),

@@ -23,20 +23,14 @@ export const SANDBOX = {
   APK_MAX_SIZE_BYTES:     200 * 1024 * 1024,      // 200 MB per APK
 
   // ── Network ───────────────────────────────────────────────────────────────
-  NETWORK_MODE: 'none',   // NO internet during build — all deps from cache
+  // Default: 'bridge' (internet access) so builds can resolve Maven deps.
+  // Set BUILD_NETWORK_MODE=none only when a pre-seeded Maven cache is present.
+  NETWORK_MODE: process.env.BUILD_NETWORK_MODE || 'bridge',
 
   // ── Security flags ────────────────────────────────────────────────────────
   NO_NEW_PRIVILEGES: true,
   READ_ONLY_ROOT: true,
   SECCOMP_PROFILE: process.env.SECCOMP_PROFILE || '/etc/apk-factory/seccomp.json',
-
-  // ── Gradle cache (read-only bind mount) ──────────────────────────────────
-  GRADLE_CACHE_HOST: process.env.GRADLE_CACHE_DIR || '/opt/apk-factory/gradle-cache',
-  GRADLE_CACHE_CTR: '/root/.gradle',
-
-  // ── Android SDK (read-only) ──────────────────────────────────────────────
-  ANDROID_SDK_HOST: process.env.ANDROID_HOME || '/opt/android-sdk',
-  ANDROID_SDK_CTR: '/opt/android-sdk',
 } as const;
 
 // Per-stage timeouts (all in ms)
