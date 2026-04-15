@@ -165,7 +165,9 @@ export class InternalBuildsController {
   ) {
     this.authorize(secret);
 
-    const apkPath = this.storage.getApkPath(buildId);
+    const buildInfo = await this.prisma.build.findUnique({ where: { id: buildId } });
+    const fileExt = buildInfo?.buildType === 'AAB' ? '.aab' : '.apk';
+    const apkPath = this.storage.getApkPath(buildId, fileExt);
     const chunks: Buffer[] = [];
     for await (const chunk of req) chunks.push(chunk);
     const buffer = Buffer.concat(chunks);
@@ -173,7 +175,7 @@ export class InternalBuildsController {
     await this.storage.saveFile(apkPath, buffer);
     const apkSize = buffer.length;
 
-    const apkUrl = `${this.config.get('API_BASE_URL')}/files/apks/${buildId}.apk`;
+    const apkUrl = `${this.config.get('API_BASE_URL')}/files/apks/${buildId}${fileExt}`;
     await this.prisma.build.update({
       where: { id: buildId },
       data: { apkUrl, apkSize },

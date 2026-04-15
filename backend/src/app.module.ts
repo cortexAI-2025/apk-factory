@@ -11,6 +11,7 @@ import { BuildsGateway } from './gateway/builds.gateway';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { DownloadModule } from './download/download.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { MetricsModule } from './metrics/metrics.module';
     AiModule,
     HealthModule,
     MetricsModule,
+    DownloadModule,
   ],
   providers: [BuildsGateway],
 })

@@ -56,9 +56,10 @@ export class StorageService {
     await fs.rm(dirPath, { recursive: true, force: true }).catch(() => {});
   }
 
-  getApkPath(buildId: string): string {
-    return path.join(this.uploadsPath, 'apks', `${buildId}.apk`);
+  getApkPath(buildId: string, ext = '.apk'): string {
+    return path.join(this.uploadsPath, 'apks', `${buildId}${ext}`);
   }
+
 
   getProjectDir(projectId: string): string {
     return path.join(this.uploadsPath, 'projects', projectId);

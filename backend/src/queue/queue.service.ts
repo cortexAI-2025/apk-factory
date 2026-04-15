@@ -35,7 +35,7 @@ export class QueueService implements OnModuleInit {
         attempts: 1,
         removeOnComplete: { count: 100 },
         removeOnFail: { count: 50 },
-        timeout: 30 * 60 * 1000, // 30 minutes max
+        // timeout: 30 * 60 * 1000, // 30 minutes max - not supported in DefaultJobOptions in this bullmq version
       },
     });
 

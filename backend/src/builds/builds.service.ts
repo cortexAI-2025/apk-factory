@@ -160,7 +160,7 @@ export class BuildsService {
   async cancel(userId: string, buildId: string) {
     const build = await this.findOne(userId, buildId);
 
-    if (![BuildStatus.PENDING, BuildStatus.QUEUED, BuildStatus.BUILDING].includes(build.status)) {
+    if (![BuildStatus.PENDING, BuildStatus.QUEUED, BuildStatus.BUILDING].includes(build.status as any)) {
       throw new BadRequestException('Cannot cancel a build that is not in progress');
     }
 
