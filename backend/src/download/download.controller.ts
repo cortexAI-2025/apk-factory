@@ -41,7 +41,8 @@ export class DownloadController {
     }
 
     const buildId = build.id;
-    const apkPath = this.storage.getApkPath(buildId);
+    const ext = build.buildType === 'AAB' ? '.aab' : '.apk';
+    const apkPath = this.storage.getApkPath(buildId, ext);
 
     const exists = await this.storage.fileExists(apkPath);
     if (!exists) {
@@ -50,7 +51,7 @@ export class DownloadController {
 
     res.download(
       apkPath,
-      `${build.project?.name || "app"}-${build.buildType.toLowerCase()}.apk`,
+      `${build.project?.name || "app"}-${build.buildType.toLowerCase()}${ext}`,
     );
   }
 }
