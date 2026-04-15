@@ -11,6 +11,7 @@
  */
 import { Job } from 'bullmq';
 import * as fs from 'fs/promises';
+import { createReadStream } from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import { logger } from '../logger';
@@ -73,6 +74,20 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
     updateProgress: async (percent, phase) => {
       if (job) await job.updateProgress(percent).catch(() => {});
     },
+
+    uploadApk: async (apkPath) => {
+      const stream = createReadStream(apkPath);
+      const url = `${API_BASE}/internal/builds/${input.buildId}/apk`;
+      const response = await axios.post(url, stream, {
+        headers: {
+          'x-worker-secret': WORKER_SECRET,
+          'Content-Type': 'application/octet-stream',
+        },
+        maxContentLength: Infinity,
+        maxBodyLength: Infinity,
+      });
+      return response.data;
+    },
   };
 
   // ── Run stages sequentially ───────────────────────────────────────────────
@@ -107,9 +122,7 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
     }
 
     // ── All stages passed ─────────────────────────────────────────────────
-    const apkUrl = ctx.apkHostPath
-      ? `${API_BASE}/files/apks/${path.basename(ctx.apkHostPath)}`
-      : undefined;
+    const apkUrl = ctx.apkUrl;
 
     await ctx.updateStatus('SUCCESS', {
       apkUrl,

@@ -62,29 +62,17 @@ export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
 
   await ctx.log('info', `APK size: ${(apkSize / 1024 / 1024).toFixed(2)} MB`);
 
-  // ── 3. Copy to permanent storage ─────────────────────────────────────────
-  const storageDir = path.join(
-    process.env.UPLOADS_PATH || '/app/uploads',
-    'apks',
-  );
-  await fs.mkdir(storageDir, { recursive: true });
-
-  const ext = path.extname(apkPath); // .apk or .aab
-  const destPath = path.join(storageDir, `${ctx.buildId}${ext}`);
-
-  await ctx.log('info', `Copying to storage: ${destPath}`);
-  await fs.copyFile(apkPath, destPath);
-
-  // Verify copy integrity
-  const destStat = await fs.stat(destPath);
-  if (destStat.size !== apkSize) {
-    return { ok: false, fatal: true, error: 'APK copy verification failed (size mismatch)' };
+  // ── 3. Upload artifact via API ───────────────────────────────────────────
+  await ctx.log('info', `Uploading APK...`);
+  try {
+    const uploadResult = await ctx.uploadApk(apkPath);
+    ctx.apkUrl = uploadResult.apkUrl;
+    ctx.apkSize = apkSize;
+    await ctx.log('info', `✓ APK uploaded successfully (${(apkSize / 1024 / 1024).toFixed(2)} MB)`);
+  } catch (err: any) {
+    await ctx.log('error', `Failed to upload APK: ${err.message}`);
+    return { ok: false, fatal: true, error: `APK upload failed: ${err.message}` };
   }
-
-  ctx.apkHostPath = destPath;
-  ctx.apkSize = apkSize;
-
-  await ctx.log('info', `✓ APK stored successfully (${(apkSize / 1024 / 1024).toFixed(2)} MB)`);
 
   // ── 4. Cleanup workspace ──────────────────────────────────────────────────
   await ctx.log('info', 'Cleaning up workspace...');

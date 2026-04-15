@@ -38,6 +38,7 @@ export interface PipelineContext {
 
   // Build results
   apkHostPath?: string;
+  apkUrl?: string;
   apkSize?: number;
   autoFixAttempts: number;
   buildOutput: string;
@@ -48,6 +49,7 @@ export interface PipelineContext {
   reportFix: (attempt: number, description: string, files: string[], summary: string, success: boolean, patches?: any[]) => Promise<void>;
   updateStatus: (status: string, extra?: Record<string, unknown>) => Promise<void>;
   updateProgress: (percent: number, phase: string) => Promise<void>;
+  uploadApk: (apkPath: string) => Promise<{ apkUrl: string; apkSize: number }>;
 }
 
 export interface StageResult {
