@@ -22,6 +22,11 @@ export const SANDBOX = {
   MAX_ZIP_RATIO:          50,                     // anti-bomb: ratio limit
   APK_MAX_SIZE_BYTES:     200 * 1024 * 1024,      // 200 MB per APK
 
+  ANDROID_SDK_HOST: process.env.ANDROID_HOME || '/opt/android-sdk',
+  ANDROID_SDK_CTR: '/opt/android-sdk',
+  GRADLE_CACHE_HOST: process.env.GRADLE_CACHE_DIR || '/opt/gradle-home',
+  GRADLE_CACHE_CTR: '/opt/gradle-home',
+
   // ── Network ───────────────────────────────────────────────────────────────
   // Default: 'bridge' (internet access) so builds can resolve Maven deps.
   // Set BUILD_NETWORK_MODE=none only when a pre-seeded Maven cache is present.
