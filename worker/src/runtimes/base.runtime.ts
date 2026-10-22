@@ -2,7 +2,7 @@
  * BaseRuntime — shared logic for all Docker-based runtimes.
  * Subclasses override `runtimeFlag()` and `name`.
  */
-import { spawn } from 'child_process';
+import { spawn, execFile } from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { IRuntime, ContainerRunOptions, ContainerRunResult, RuntimeInfo } from './runtime.interface';
@@ -57,6 +57,12 @@ export abstract class BaseDockerRuntime implements IRuntime {
 
     // Verify gradlew executable
     try { await fs.chmod(path.join(projectPath, 'gradlew'), 0o755); } catch {}
+
+    // The worker extracts as root but the sandbox runs as uid 1000 (builder):
+    // make the workspace writable so Gradle can create build/ outputs.
+    await new Promise<void>((resolve) =>
+      execFile('chmod', ['-R', 'a+rwX', projectPath], () => resolve()),
+    );
 
     onLog(`[${this.name}] Container: ${containerName}`, 'stdout');
     onLog(`[${this.name}] Image: ${SANDBOX.IMAGE}`, 'stdout');

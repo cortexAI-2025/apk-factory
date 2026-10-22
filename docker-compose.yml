@@ -154,6 +154,8 @@ services:
       BUILD_CPUS: ${BUILD_CPUS:-2}
       BUILD_TIMEOUT_MS: ${BUILD_TIMEOUT_MS:-1500000}
       WORKSPACE_DIR: /tmp/apk-factory/workspaces
+      MAVEN_CACHE_DIR: ${MAVEN_CACHE_DIR:-/opt/apk-factory/maven-cache}
+      BUILD_NETWORK_MODE: ${BUILD_NETWORK_MODE:-bridge}
       UPLOADS_PATH: /app/uploads
 
       # Read-only bind mounts inside build containers
@@ -172,6 +174,8 @@ services:
       # Workspace: host bind-mount so spawned build containers can access the
       # same path via Docker daemon (Docker volumes are not visible to DinD).
       - /tmp/apk-factory/workspaces:/tmp/apk-factory/workspaces
+      # Optional Maven offline cache (host path must be identical inside worker)
+      - ${MAVEN_CACHE_DIR:-/opt/apk-factory/maven-cache}:${MAVEN_CACHE_DIR:-/opt/apk-factory/maven-cache}:ro
 
     depends_on:
       redis:

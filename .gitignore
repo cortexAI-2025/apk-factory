@@ -33,8 +33,6 @@ Thumbs.db
 *.swp
 *.swo
 
-# Prisma
-prisma/migrations/
 
 # TypeScript
 *.tsbuildinfo

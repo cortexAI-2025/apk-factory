@@ -77,7 +77,7 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
 
     uploadApk: async (apkPath) => {
       const stream = createReadStream(apkPath);
-      const url = `${API_BASE}/internal/builds/${input.buildId}/apk`;
+      const url = `${API_BASE}/api/v1/internal/builds/${input.buildId}/apk`;
       const response = await axios.post(url, stream, {
         headers: {
           'x-worker-secret': WORKER_SECRET,

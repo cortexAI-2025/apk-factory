@@ -49,6 +49,10 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
 
   // Extra volume mount for Maven cache
   const extraVolumes = cacheAvailable ? maven.volumeMount() : [];
+  // Gradle does not auto-load project-level init.d scripts: pass it explicitly
+  const gradleCommand = cacheAvailable
+    ? `${ctx.gradleCommand} --init-script /workspace/.gradle/init.d/apk-factory-offline.gradle`
+    : ctx.gradleCommand;
 
   let attempt = 0;
 
@@ -64,7 +68,7 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
       const result = await runtime.run({
         buildId:      ctx.buildId,
         projectPath:  ctx.projectRoot,
-        gradleCommand: ctx.gradleCommand,
+        gradleCommand,
         extraVolumes,
         timeoutMs:    STAGE_TIMEOUTS.BUILD,
         onLog: async (line) => {

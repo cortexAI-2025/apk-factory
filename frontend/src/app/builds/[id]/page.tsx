@@ -13,6 +13,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { buildsApi } from '@/lib/api';
 import { useBuildSocket } from '@/lib/hooks/useBuildSocket';
 import { BuildLog, Build, BuildStatus, BuildFix } from '@/lib/types';
+import { DiffViewer } from '@/components/builds/DiffViewer';
 import { formatDistanceToNow } from 'date-fns';
 
 const LOG_COLORS: Record<string, string> = {
@@ -55,8 +56,8 @@ export default function BuildViewerPage() {
   const { data: build, refetch } = useQuery<Build>({
     queryKey: ['build', buildId],
     queryFn: () => buildsApi.get(projectId, buildId),
-    refetchInterval: (data) => {
-      const status = data?.status as BuildStatus;
+    refetchInterval: (query) => {
+      const status = query.state.data?.status as BuildStatus;
       return ['PENDING', 'QUEUED', 'BUILDING', 'FIXING'].includes(status) ? 3000 : false;
     },
   });
@@ -92,6 +93,7 @@ export default function BuildViewerPage() {
       }
     },
     onFix: (fix) => {
+      refetch(); // pull persisted fix incl. diff patches
       setFixes((prev) => [
         ...prev,
         {
@@ -141,7 +143,8 @@ export default function BuildViewerPage() {
     }
   };
 
-  const allFixes = [...(build?.fixes || []), ...fixes];
+  const persistedAttempts = new Set((build?.fixes || []).map((f) => f.attempt));
+  const allFixes = [...(build?.fixes || []), ...fixes.filter((f) => !persistedAttempts.has(f.attempt))];
   const cfg = STATUS_CONFIG[activeStatus] || STATUS_CONFIG.PENDING;
 
   return (
@@ -330,32 +333,36 @@ export default function BuildViewerPage() {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {allFixes.map((fix, i) => (
-                    <div key={fix.id || i} className="border border-orange-500/20 bg-orange-500/5 rounded-lg p-3">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-orange-400 text-xs font-medium">
-                          Fix #{fix.attempt}
-                        </span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded-full ${
-                          fix.success
-                            ? 'bg-green-500/10 text-green-400'
-                            : 'bg-red-500/10 text-red-400'
-                        }`}>
-                          {fix.success ? 'Applied' : 'Failed'}
-                        </span>
-                      </div>
-                      <p className="text-gray-300 text-xs mb-2">{fix.fixDescription}</p>
-                      {fix.filesModified?.length > 0 && (
-                        <div className="space-y-0.5">
-                          {fix.filesModified.map((f) => (
-                            <div key={f} className="text-xs text-gray-500 font-mono">
-                              ~ {f}
-                            </div>
-                          ))}
+                  {allFixes.map((fix, i) =>
+                    fix.patches && fix.patches.length > 0 ? (
+                      <DiffViewer
+                        key={fix.id || i}
+                        patches={fix.patches}
+                        attempt={fix.attempt}
+                        description={fix.fixDescription}
+                        success={fix.success}
+                      />
+                    ) : (
+                      <div key={fix.id || i} className="border border-orange-500/20 bg-orange-500/5 rounded-lg p-3">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-orange-400 text-xs font-medium">Fix #{fix.attempt}</span>
+                          <span className={`text-xs px-1.5 py-0.5 rounded-full ${
+                            fix.success ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'
+                          }`}>
+                            {fix.success ? 'Applied' : 'Failed'}
+                          </span>
                         </div>
-                      )}
-                    </div>
-                  ))}
+                        <p className="text-gray-300 text-xs mb-2">{fix.fixDescription}</p>
+                        {fix.filesModified?.length > 0 && (
+                          <div className="space-y-0.5">
+                            {fix.filesModified.map((f) => (
+                              <div key={f} className="text-xs text-gray-500 font-mono">~ {f}</div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  )}
                 </div>
               )}
             </div>
