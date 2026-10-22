@@ -14,7 +14,9 @@ import * as fs from 'fs/promises';
 import * as unzipper from 'extract-zip';
 import { v4 as uuidv4 } from 'uuid';
 import axios from 'axios';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
+
+const GITHUB_REPO_URL = /^https:\/\/github\.com\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+?(\.git)?\/?$/;
 
 interface AndroidProjectAnalysis {
   projectType: ProjectType;
@@ -85,12 +87,15 @@ export class ProjectsService {
     const projectDir = await this.storage.createProjectDir(projectId);
 
     // Clone GitHub repo
-    const repoUrl = dto.sourceUrl;
+    const repoUrl = dto.sourceUrl.trim();
+    if (!GITHUB_REPO_URL.test(repoUrl)) {
+      throw new BadRequestException('Only https://github.com/<owner>/<repo> URLs are supported');
+    }
     const cloneDir = path.join(projectDir, 'source');
 
     try {
       this.logger.log(`Cloning repo: ${repoUrl}`);
-      execSync(`git clone --depth=1 "${repoUrl}" "${cloneDir}"`, {
+      execFileSync('git', ['clone', '--depth=1', '--', repoUrl, cloneDir], {
         timeout: 120000,
         env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
       });

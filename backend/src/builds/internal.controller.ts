@@ -41,7 +41,16 @@ export class InternalBuildsController {
   async updateStatus(
     @Param('buildId') buildId: string,
     @Headers('x-worker-secret') secret: string,
-    @Body() body: { status: string; apkUrl?: string; apkSize?: number; errorMessage?: string },
+    @Body()
+    body: {
+      status: string;
+      apkUrl?: string;
+      apkSize?: number;
+      errorMessage?: string;
+      runtime?: string;
+      mavenCacheHit?: boolean;
+      autoFixAttempts?: number;
+    },
   ) {
     this.authorize(secret);
 
@@ -71,6 +80,9 @@ export class InternalBuildsController {
         apkUrl: body.apkUrl,
         apkSize: body.apkSize,
         errorMessage: body.errorMessage,
+        ...(body.runtime ? { runtime: body.runtime } : {}),
+        ...(body.autoFixAttempts ? { autoFixAttempts: body.autoFixAttempts } : {}),
+        ...(body.mavenCacheHit !== undefined ? { mavenCacheHit: body.mavenCacheHit } : {}),
         ...(body.status === 'BUILDING' && !build?.startedAt ? { startedAt: now } : {}),
         ...(['SUCCESS', 'FAILED', 'CANCELLED', 'TIMEOUT'].includes(body.status)
           ? { finishedAt: now, duration, cpuSeconds, costCredits }

@@ -4,11 +4,11 @@ import { BuildsController } from './builds.controller';
 import { InternalBuildsController } from './internal.controller';
 import { QueueModule } from '../queue/queue.module';
 import { StorageModule } from '../storage/storage.module';
-import { BuildsGateway } from '../gateway/builds.gateway';
+import { GatewayModule } from '../gateway/gateway.module';
 
 @Module({
-  imports: [QueueModule, StorageModule],
-  providers: [BuildsService, BuildsGateway],
+  imports: [QueueModule, StorageModule, GatewayModule],
+  providers: [BuildsService],
   controllers: [BuildsController, InternalBuildsController],
   exports: [BuildsService],
 })

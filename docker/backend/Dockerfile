@@ -9,7 +9,7 @@ RUN npm run build
 
 FROM node:20-slim AS runner
 
-RUN apt-get update && apt-get install -y --no-install-recommends curl openssl ca-certificates \
+RUN apt-get update && apt-get install -y --no-install-recommends curl git openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

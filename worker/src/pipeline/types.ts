@@ -43,6 +43,8 @@ export interface PipelineContext {
   autoFixAttempts: number;
   buildOutput: string;
   buildDurationMs?: number;
+  runtime?: string;
+  mavenCacheHit?: boolean;
 
   // Logging callback
   log: (level: 'info' | 'warn' | 'error' | 'debug', message: string) => Promise<void>;

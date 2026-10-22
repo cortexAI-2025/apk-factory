@@ -178,7 +178,7 @@ export default function BuildViewerPage() {
                   {buildId.slice(0, 8)}...
                   {build?.buildType && ` · ${build.buildType}`}
                   {build?.duration && ` · ${fmtDuration(build.duration)}`}
-                  {build?.autoFixAttempts && build.autoFixAttempts > 0 && (
+                  {(build?.autoFixAttempts ?? 0) > 0 && (
                     <span className="text-orange-400"> · {build.autoFixAttempts} AI fix(es)</span>
                   )}
                 </p>
@@ -203,7 +203,7 @@ export default function BuildViewerPage() {
                     className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
                   >
                     <Download className="w-4 h-4" />
-                    Download APK
+                    Download {build.buildType === 'AAB' ? 'AAB' : 'APK'}
                     {build.apkSize && ` (${(build.apkSize / 1024 / 1024).toFixed(1)}MB)`}
                   </a>
                   <button

@@ -67,7 +67,13 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
 
     updateStatus: async (status, extra = {}) => {
       try {
-        await apiPatch(`/internal/builds/${input.buildId}/status`, { status, ...extra });
+        await apiPatch(`/internal/builds/${input.buildId}/status`, {
+          status,
+          runtime: ctx.runtime,
+          mavenCacheHit: ctx.mavenCacheHit,
+          autoFixAttempts: ctx.autoFixAttempts,
+          ...extra,
+        });
       } catch {}
     },
 
@@ -115,7 +121,7 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
       if (!result.ok) {
         logger.error(`[${input.buildId}] Stage ${stage.name} failed: ${result.error}`);
         await ctx.log('error', `Stage ${stage.name} failed: ${result.error}`);
-        await ctx.updateStatus('FAILED', { errorMessage: result.error });
+        await ctx.updateStatus(result.error === 'Build timed out' ? 'TIMEOUT' : 'FAILED', { errorMessage: result.error });
         await cleanupWorkspace(ctx);
         return;
       }

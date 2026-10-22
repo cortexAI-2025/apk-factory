@@ -33,6 +33,7 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
   let runtime;
   try {
     runtime = await getRuntime();
+    ctx.runtime = runtime.name;
     await ctx.log('info', `Runtime: ${runtime.name} (isolation=${runtime.securityLevel})`);
   } catch (err: any) {
     return { ok: false, fatal: true, error: `Runtime unavailable: ${err.message}` };
@@ -40,6 +41,7 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
 
   // ── Maven offline cache ───────────────────────────────────────────────────
   const cacheAvailable = await maven.isCacheAvailable();
+  ctx.mavenCacheHit = cacheAvailable;
   if (cacheAvailable) {
     await ctx.log('info', 'Maven offline cache: available — injecting init script');
     await maven.inject(ctx.projectRoot);

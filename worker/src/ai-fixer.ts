@@ -169,9 +169,12 @@ Rules:
           .replace(/compileSdkVersion\s+\d+/g, 'compileSdkVersion 34')
           .replace(/targetSdkVersion\s+\d+/g,  'targetSdkVersion 34')
           .replace(/minSdkVersion\s+\d+/g,      'minSdkVersion 21')
-          .replace(/compileSdk\s*=\s*\d+/g,     'compileSdk = 34')
-          .replace(/targetSdk\s*=\s*\d+/g,      'targetSdk = 34')
-          .replace(/minSdk\s*=\s*\d+/g,         'minSdk = 21');
+          .replace(/\bcompileSdk\s*=\s*\d+/g,   'compileSdk = 34')
+          .replace(/\bcompileSdk\s+\d+/g,       'compileSdk 34')
+          .replace(/\btargetSdk\s*=\s*\d+/g,    'targetSdk = 34')
+          .replace(/\btargetSdk\s+\d+/g,        'targetSdk 34')
+          .replace(/\bminSdk\s*=\s*\d+/g,       'minSdk = 21')
+          .replace(/\bminSdk\s+\d+/g,           'minSdk 21');
         applied.push('Fixed SDK versions (compileSdk=34, targetSdk=34, minSdk=21)');
       }
 

@@ -67,7 +67,7 @@ const SUSPICIOUS_CODE_PATTERNS: Array<{ pattern: RegExp; type: string; severity:
     detail: 'Dynamic code loading from external path',
   },
   {
-    pattern: /http[s]?:\/\/(?!repo1\.maven\.org|dl\.google\.com|jcenter\.bintray\.com|plugins\.gradle\.org|services\.gradle\.org|jitpack\.io|maven\.google\.com)/i,
+    pattern: /http[s]?:\/\/(?!repo1\.maven\.org|repo\.maven\.apache\.org|schemas\.android\.com|www\.w3\.org|www\.apache\.org|developer\.android\.com|dl\.google\.com|jcenter\.bintray\.com|plugins\.gradle\.org|services\.gradle\.org|jitpack\.io|maven\.google\.com)/i,
     type: 'SUSPICIOUS_URL',
     severity: 'medium',
     detail: 'Unknown external URL in build script',
