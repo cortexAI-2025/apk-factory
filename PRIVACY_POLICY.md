@@ -41,14 +41,14 @@ L'application peut demander les permissions suivantes :
 Conformément au RGPD et aux règles de Google Play, Aiworkpay s'engage à :
 
 - Ne jamais vendre vos données de projet à des tiers.
-- Supprimer les artefacts de build (fichiers temporaires) immédiatement après le téléchargement réussi ou après 24 heures d'inactivité.
+- Supprimer automatiquement les artefacts de build (APK/AAB, codes QR) et les fichiers sources de vos projets 24 heures après la fin du dernier build (durée configurable côté serveur).
 - Utiliser des serveurs sécurisés basés en Europe pour le traitement des données.
 
 ---
 
 ## 5. Suppression des Données
 
-Vous pouvez demander la suppression de votre historique de build et de vos fichiers de signature à tout moment en envoyant un email à **aapro78@gmail.com**. Une option de suppression automatique est également disponible dans les paramètres de l'application.
+Vous pouvez demander la suppression de votre historique de build et de vos fichiers de signature à tout moment en envoyant un email à **aapro78@gmail.com**. Vous pouvez aussi supprimer vous-même, à tout moment, votre historique de build et vos fichiers, ou votre compte entier, depuis la page *Paramètres* de l'application.
 
 ---
 

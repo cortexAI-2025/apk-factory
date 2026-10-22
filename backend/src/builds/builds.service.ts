@@ -29,6 +29,11 @@ export class BuildsService {
     const project = await this.prisma.project.findUnique({ where: { id: projectId } });
     if (!project) throw new NotFoundException('Project not found');
     if (project.userId !== userId) throw new ForbiddenException();
+    if (!project.sourcePath) {
+      throw new BadRequestException(
+        'Project files were deleted (retention policy). Please upload the project again.',
+      );
+    }
 
     // Check build limits for free plan
     const user = await this.prisma.user.findUnique({ where: { id: userId } });

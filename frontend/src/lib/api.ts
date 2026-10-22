@@ -80,3 +80,9 @@ export const metricsApi = {
   feed:  (limit = 20) => api.get('/metrics/feed', { params: { limit } }).then((r) => r.data),
   chart: (days = 30)  => api.get('/metrics/chart', { params: { days } }).then((r) => r.data),
 };
+
+// --- Account / data lifecycle ---
+export const meApi = {
+  deleteData:    () => api.delete('/me/data').then((r) => r.data),
+  deleteAccount: () => api.delete('/me').then((r) => r.data),
+};

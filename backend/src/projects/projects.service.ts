@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
+import { LifecycleService } from '../lifecycle/lifecycle.service';
 import { CreateProjectFromUrlDto } from './dto/create-project.dto';
 import { ProjectSourceType, ProjectType } from '@prisma/client';
 import * as path from 'path';
@@ -37,6 +38,7 @@ export class ProjectsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly storage: StorageService,
+    private readonly lifecycle: LifecycleService,
   ) {}
 
   async createFromZip(userId: string, file: Express.Multer.File, name?: string, description?: string) {
@@ -184,13 +186,8 @@ export class ProjectsService {
     if (!project) throw new NotFoundException('Project not found');
     if (project.userId !== userId) throw new ForbiddenException();
 
-    // Clean up files
-    if (project.sourcePath) {
-      const projectDir = path.dirname(path.dirname(project.sourcePath));
-      await fs.rm(projectDir, { recursive: true, force: true }).catch(() => {});
-    }
-
-    await this.prisma.project.delete({ where: { id: projectId } });
+    // Removes sources, APK/AAB + QR artifacts of every build, then DB rows
+    await this.lifecycle.deleteProject(projectId);
     return { deleted: true };
   }
 

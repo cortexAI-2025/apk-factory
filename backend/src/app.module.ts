@@ -11,6 +11,7 @@ import { GatewayModule } from './gateway/gateway.module';
 import { HealthModule } from './health/health.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { LifecycleModule } from './lifecycle/lifecycle.module';
 import { DownloadModule } from './download/download.module';
 
 @Module({
@@ -34,6 +35,7 @@ import { DownloadModule } from './download/download.module';
     MetricsModule,
     DownloadModule,
     GatewayModule,
+    LifecycleModule,
   ],
 })
 export class AppModule {}

@@ -89,6 +89,8 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
       UPLOADS_PATH: /app/uploads
+      RETENTION_HOURS: ${RETENTION_HOURS:-24}
+      RETENTION_SWEEP_MINUTES: ${RETENTION_SWEEP_MINUTES:-30}
     volumes:
       - uploads_data:/app/uploads
     depends_on:

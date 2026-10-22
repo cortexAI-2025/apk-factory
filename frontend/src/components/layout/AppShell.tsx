@@ -2,13 +2,13 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Zap, LayoutDashboard, FolderOpen, LogOut, User, ChevronRight } from 'lucide-react';
+import { Zap, LayoutDashboard, Settings, LogOut, User, ChevronRight } from 'lucide-react';
 import { useAuth } from '@/lib/hooks/useAuth';
 import toast from 'react-hot-toast';
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/projects', label: 'Projects', icon: FolderOpen },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -96,11 +96,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   style={{ width: `${Math.min((user.buildsUsed / user.buildsLimit) * 100, 100)}%` }}
                 />
               </div>
-              {user.plan === 'FREE' && (
-                <Link href="/pricing" className="text-xs text-green-400 mt-1.5 block hover:text-green-300">
-                  Upgrade to Pro →
-                </Link>
-              )}
             </div>
           )}
 
