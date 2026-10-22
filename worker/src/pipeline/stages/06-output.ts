@@ -6,44 +6,22 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PipelineContext, StageResult } from '../types';
-import { DockerRunner } from '../../docker-runner';
+import { findBuildArtifact } from '../artifacts';
 import { SANDBOX } from '../../security/sandbox-config';
-
-const runner = new DockerRunner();
-
-// Known output paths for common Gradle tasks
-const APK_CANDIDATES = [
-  'app/build/outputs/apk/debug/app-debug.apk',
-  'app/build/outputs/apk/release/app-release.apk',
-  'app/build/outputs/apk/release/app-release-unsigned.apk',
-  'app/build/outputs/bundle/release/app-release.aab',
-  'build/outputs/apk/debug/app-debug.apk',
-  'build/outputs/apk/release/app-release.apk',
-];
 
 export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', '─── Stage 6/6: OUTPUT ──────────────────────────────');
 
-  // ── 1. Locate APK ─────────────────────────────────────────────────────────
-  let apkPath: string | null = null;
-
-  for (const rel of APK_CANDIDATES) {
-    const full = path.join(ctx.projectRoot, rel);
-    try {
-      await fs.access(full);
-      apkPath = full;
-      break;
-    } catch {}
-  }
-
-  // Glob fallback
-  if (!apkPath) {
-    apkPath = await runner.findApkInWorkspace(ctx.projectRoot);
+  // Select the output for this build type; fail rather than upload a different variant.
+  let apkPath: string | null;
+  try {
+    apkPath = await findBuildArtifact(ctx.projectRoot, ctx.buildType);
+  } catch (err: any) {
+    return { ok: false, fatal: true, error: err.message };
   }
 
   if (!apkPath) {
-    await ctx.log('error', 'Build claimed success but no APK/AAB found');
-    return { ok: false, fatal: true, error: 'APK not found after successful build' };
+    return { ok: false, fatal: true, error: `${ctx.buildType} artifact not found after successful build` };
   }
 
   await ctx.log('info', `APK found: ${path.relative(ctx.projectRoot, apkPath)}`);
