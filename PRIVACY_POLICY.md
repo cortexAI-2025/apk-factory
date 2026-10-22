@@ -22,8 +22,8 @@ Nous accédons temporairement aux dépôts GitHub que vous nous fournissez pour 
 **Fichiers de Signature (Keystores)**  
 Les fichiers `.jks` ou `.keystore` téléchargés pour signer vos applications sont chiffrés et utilisés uniquement durant la phase de build. Ils ne sont jamais accessibles par des tiers.
 
-**Identifiants techniques**  
-Nous utilisons l'API de Mistral (Codestral) pour analyser et corriger les erreurs de compilation. Aucune donnée permettant de vous identifier personnellement n'est transmise à l'IA.
+**Correction automatique par IA (Anthropic)**  
+Lorsque la correction automatique est activée, nous utilisons l'API d'Anthropic (modèles Claude) pour analyser et corriger les erreurs de compilation. Seuls les messages d'erreur du build et le contenu des fichiers de configuration Gradle (`build.gradle`, `settings.gradle`, `gradle.properties`) sont transmis, via une connexion HTTPS. Le reste de votre code source, vos keystores et toute donnée permettant de vous identifier personnellement ne sont pas transmis. Si aucune clé API n'est configurée, des règles de correction locales sont utilisées et aucune donnée n'est envoyée à un tiers.
 
 ---
 

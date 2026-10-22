@@ -87,6 +87,7 @@ services:
       API_BASE_URL: ${API_BASE_URL:-http://localhost:4000}
       WORKER_SECRET: ${WORKER_SECRET:?err}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
       UPLOADS_PATH: /app/uploads
     volumes:
       - uploads_data:/app/uploads
@@ -147,6 +148,7 @@ services:
       WORKER_SECRET: ${WORKER_SECRET}
       WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
 
       # Sandbox configuration passed to DockerRunner
       BUILDER_IMAGE: apk-factory/android-builder:latest

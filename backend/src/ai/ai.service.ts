@@ -152,7 +152,7 @@ Rules:
       const response = await axios.post(
         'https://api.anthropic.com/v1/messages',
         {
-          model: 'claude-opus-4-6',
+          model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
           max_tokens: 4096,
           messages: [{ role: 'user', content: prompt }],
         },

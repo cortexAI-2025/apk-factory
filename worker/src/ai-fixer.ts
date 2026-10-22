@@ -139,7 +139,7 @@ Rules:
     try {
       const resp = await axios.post(
         'https://api.anthropic.com/v1/messages',
-        { model: 'claude-opus-4-6', max_tokens: 8192, messages: [{ role: 'user', content: prompt }] },
+        { model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5', max_tokens: 8192, messages: [{ role: 'user', content: prompt }] },
         { headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, timeout: 90000 },
       );
       const text  = resp.data.content[0].text;
