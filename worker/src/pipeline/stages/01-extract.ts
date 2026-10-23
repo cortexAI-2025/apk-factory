@@ -5,26 +5,49 @@
  */
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as os from 'os';
-import { createWriteStream, createReadStream } from 'fs';
-import { pipeline } from 'stream/promises';
 import extractZip from 'extract-zip';
 import { PipelineContext, StageResult } from '../types';
 import { FileScanner } from '../../security/file-scanner';
 import { SANDBOX, STAGE_TIMEOUTS } from '../../security/sandbox-config';
-import { v4 as uuidv4 } from 'uuid';
 
 const scanner = new FileScanner();
 
 export async function stageExtract(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', '─── Stage 1/6: EXTRACT ─────────────────────────────');
 
-  // If source is already a directory (GitHub clone), skip extraction
+  // Both ZIP uploads and GitHub imports arrive here as extracted directories.
+  // uploads_data is a named volume in Compose, invisible at the same path on
+  // the Docker host. Only WORKSPACE_DIR is mounted at an identical host path.
+  // Never build or apply AI fixes directly in the shared, original source.
   if (ctx.sourceRepoPath) {
-    await ctx.log('info', `Source is a cloned repo: ${ctx.sourceRepoPath}`);
-    ctx.workspaceDir = ctx.sourceRepoPath;
-    ctx.projectRoot = ctx.sourceRepoPath;
-    return { ok: true };
+    await fs.mkdir(SANDBOX.WORKSPACE_DIR, { recursive: true });
+    const workspaceDir = await fs.mkdtemp(path.join(SANDBOX.WORKSPACE_DIR, `${ctx.buildId}-`));
+    ctx.workspaceDir = workspaceDir;
+    try {
+      let totalBytes = 0;
+      await fs.cp(ctx.sourceRepoPath, workspaceDir, {
+        recursive: true,
+        dereference: false,
+        filter: async (source) => {
+          const stat = await fs.lstat(source);
+          // Exclude old outputs/caches, including custom modules, so a stale
+          // APK cannot be mistaken for the result of this build.
+          if (source !== ctx.sourceRepoPath && stat.isDirectory() &&
+              ['build', '.gradle', '.git', 'node_modules'].includes(path.basename(source))) return false;
+          if (stat.isSymbolicLink()) throw new Error(`Symbolic links are not supported: ${path.relative(ctx.sourceRepoPath!, source)}`);
+          if (!stat.isDirectory() && !stat.isFile()) throw new Error('Unsupported source file type');
+          totalBytes += stat.isFile() ? stat.size : 0;
+          if (totalBytes > SANDBOX.MAX_EXTRACTED_BYTES) throw new Error('Source exceeds workspace size limit');
+          return true;
+        },
+      });
+      ctx.projectRoot = await findProjectRoot(workspaceDir);
+      await ctx.log('info', `Prepared isolated workspace: ${workspaceDir}`);
+      return { ok: true };
+    } catch (err: any) {
+      await cleanup(workspaceDir);
+      return { ok: false, fatal: true, error: `Workspace preparation failed: ${err.message}` };
+    }
   }
 
   if (!ctx.sourceZipPath) {
