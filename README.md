@@ -279,3 +279,19 @@ apk-factory/
 ## License
 
 MIT
+
+## Worker regression checks
+
+```bash
+cd worker
+npm ci --ignore-scripts
+npm test
+```
+
+These checks compile the worker and test artifact delivery without Docker, an
+Android SDK, a database, or an AI key. The output stage selects only Gradle
+outputs for the requested build type: debug APK, release APK, or release AAB.
+It fails if the requested output is missing or multiple matching outputs exist,
+rather than delivering a different variant, module, or split. Projects producing
+multiple outputs need an explicit artifact-selection feature before delivery.
+These checks do not replace an end-to-end Android build on a configured worker.
