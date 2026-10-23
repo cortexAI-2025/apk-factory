@@ -295,3 +295,56 @@ It fails if the requested output is missing or multiple matching outputs exist,
 rather than delivering a different variant, module, or split. Projects producing
 multiple outputs need an explicit artifact-selection feature before delivery.
 These checks do not replace an end-to-end Android build on a configured worker.
+
+
+## Isolated build workspaces
+
+ZIP uploads and GitHub imports are copied from their stored source directory to
+an independent directory under `WORKSPACE_DIR` for each build. In Compose, this
+path must be bind-mounted at the **same absolute path on the host and worker**,
+as in the supplied `/tmp/apk-factory/workspaces` mount. The Docker daemon cannot
+resolve the worker's `/app/uploads/...` named-volume path as a host source.
+
+AI fixes and Gradle output affect only the build copy. Previous `build/` outputs,
+`.gradle`, `.git`, and `node_modules` directories are omitted. Symbolic links are
+rejected explicitly. Concurrent builds and retries receive distinct directories.
+The workspace is removed after artifact upload or a pipeline failure; original
+sources remain available until the configured retention policy deletes them.
+
+## Android end-to-end smoke check
+
+Run against a **disposable test stack**, with PostgreSQL migrations applied,
+Redis, backend, worker, and the `apk-factory/android-builder:latest` image ready.
+Build the sandbox image first if needed:
+
+```bash
+docker compose --profile init build android-builder-init
+```
+
+Provide a ZIP of a small, known-buildable native Android application containing
+its Gradle wrapper. Use SDK/Gradle versions available in the builder image and
+allow dependency resolution, or supply a complete offline Maven cache. Node 20+
+and `unzip` must be installed on the machine running this check.
+
+```bash
+SMOKE_API_URL=http://localhost:4000 \
+  node scripts/smoke-build.mjs /absolute/path/native-android.zip
+```
+
+The script registers a temporary Free account (three builds), uploads the ZIP,
+and sequentially requests DEBUG, RELEASE, and AAB with AI AutoFix disabled. It
+waits for each terminal status, downloads the expected artifact, checks size and
+ZIP integrity plus the Android manifest, and compares the share-link download
+by SHA-256. `SMOKE_API_URL` must match the backend's public `API_BASE_URL` origin.
+
+Artifacts and `report.json` are written to a unique `/tmp/apk-factory-smoke-*`
+directory, overridable with `SMOKE_OUTPUT_DIR`. Each build has a 30-minute wait
+limit, configurable with `SMOKE_TIMEOUT_MS`. A failure returns a nonzero exit
+code and saves available build logs. Test data is retained on failure for
+investigation; on success only the newly created account and projects are
+deleted. Downloaded files remain available in the output directory.
+
+This check uses the actual API, queue, sandbox and storage: it cannot run without
+a configured stack. It does not verify release signing, APK installation,
+device behaviour, frontend interactions, or GitHub import. Release outputs can
+be unsigned until custom keystore support is implemented.

@@ -60,24 +60,11 @@ export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
 }
 
 async function cleanupWorkspace(ctx: PipelineContext): Promise<void> {
-  // Remove build output dirs (large) but keep source for potential re-builds
-  const dirsToClean = [
-    path.join(ctx.projectRoot, 'app', 'build'),
-    path.join(ctx.projectRoot, 'build'),
-    path.join(ctx.projectRoot, '.gradle'),
-  ];
-
-  for (const dir of dirsToClean) {
-    try {
-      await fs.rm(dir, { recursive: true, force: true });
-    } catch {}
-  }
-
-  // If workspace is separate from the original project path, clean it
+  // Every build now owns an isolated workspace; delete it after upload.
+  // The guard preserves compatibility with callers using the original source.
   if (ctx.workspaceDir && ctx.workspaceDir !== ctx.sourceRepoPath) {
-    try {
-      // Keep the source dir for AI fix re-attempts, only remove build artifacts
-      // Full workspace cleanup happens after the job completes entirely
-    } catch {}
+    await fs.rm(ctx.workspaceDir, { recursive: true, force: true }).catch(async (err) => {
+      await ctx.log('warn', `Workspace cleanup failed: ${err.message}`);
+    });
   }
 }

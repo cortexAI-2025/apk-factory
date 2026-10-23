@@ -5,10 +5,12 @@ on:
     paths:
       - 'worker/**'
       - '.github/workflows/worker-tests.yml'
+      - 'scripts/smoke-build.mjs'
   push:
     paths:
       - 'worker/**'
       - '.github/workflows/worker-tests.yml'
+      - 'scripts/smoke-build.mjs'
 
 permissions:
   contents: read
@@ -28,3 +30,4 @@ jobs:
         working-directory: worker
       - run: npm test
         working-directory: worker
+      - run: node --check scripts/smoke-build.mjs
