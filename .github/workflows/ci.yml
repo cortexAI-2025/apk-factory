@@ -15,7 +15,7 @@ concurrency:
 jobs:
   checks:
     name: Typecheck and unit tests
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -48,13 +48,13 @@ jobs:
 
   e2e:
     name: ZIP to debug APK (real build, isolation, emulator)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 75
     permissions:
       contents: write   # push test evidence to the ci-evidence branch
     env:
       E2E_OUT: ${{ github.workspace }}/e2e-out
-      UPLOADS_PATH: ${{ runner.temp }}/uploads
+      UPLOADS_PATH: /tmp/apk-factory-uploads
       WORKSPACE_DIR: /tmp/apk-factory/workspaces
       DATABASE_URL: postgresql://apk_user:ci_pg_password@localhost:5432/apk_factory
       REDIS_PASSWORD: ci_redis_password
