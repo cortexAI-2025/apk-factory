@@ -139,20 +139,8 @@ export default function ProjectPage() {
               <div className="space-y-3 mb-4">
                 <div>
                   <label className="text-xs text-gray-400 block mb-1.5">Build type</label>
-                  <div className="flex gap-2">
-                    {(['DEBUG', 'RELEASE', 'AAB'] as BuildType[]).map((bt) => (
-                      <button
-                        key={bt}
-                        onClick={() => setBuildType(bt)}
-                        className={`flex-1 py-2 rounded-lg text-xs font-medium transition-colors ${
-                          buildType === bt
-                            ? 'bg-green-500 text-white'
-                            : 'bg-gray-800 text-gray-400 hover:text-white'
-                        }`}
-                      >
-                        {bt}
-                      </button>
-                    ))}
+                  <div className="py-2 px-3 rounded-lg text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/30">
+                    Debug APK <span className="text-gray-500 font-normal">· signed with the debug key, installable on any device</span>
                   </div>
                 </div>
 
@@ -287,16 +275,6 @@ export default function ProjectPage() {
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {build.apkUrl && (
-                          <a
-                            href={build.apkUrl}
-                            download
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-1.5 text-gray-400 hover:text-green-400 hover:bg-green-500/10 rounded-lg transition-colors"
-                          >
-                            <Download className="w-4 h-4" />
-                          </a>
-                        )}
                         {build.qrCodeUrl && (
                           <a
                             href={build.qrCodeUrl}

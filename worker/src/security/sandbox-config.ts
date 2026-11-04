@@ -5,7 +5,7 @@ export const SANDBOX = {
   IMAGE: process.env.BUILDER_IMAGE || 'apk-factory/android-builder:latest',
 
   // ── Resource limits ───────────────────────────────────────────────────────
-  MEMORY_LIMIT: process.env.BUILD_MEMORY || '3g',          // 3 GB RAM hard cap
+  MEMORY_LIMIT: process.env.BUILD_MEMORY || '4g',          // 4 GB RAM hard cap (includes the /tmp tmpfs)
   CPU_LIMIT: process.env.BUILD_CPUS || '2',                // 2 vCPUs
   PIDS_LIMIT: 512,                                          // max processes
   NOFILE_LIMIT: 4096,                                       // max open files
@@ -21,6 +21,9 @@ export const SANDBOX = {
   MAX_EXTRACTED_BYTES:    2 * 1024 * 1024 * 1024, // 2 GB total extracted
   MAX_ZIP_RATIO:          50,                     // anti-bomb: ratio limit
   APK_MAX_SIZE_BYTES:     200 * 1024 * 1024,      // 200 MB per APK
+  // Disk quota for a build workspace (bind mount): enforced by a watchdog that kills the container
+  MAX_WORKSPACE_BYTES:    parseInt(process.env.BUILD_MAX_WORKSPACE_MB || '4096', 10) * 1024 * 1024,
+  MAX_FILE_BYTES:         2 * 1024 * 1024 * 1024, // ulimit -f inside the sandbox
 
   ANDROID_SDK_HOST: process.env.ANDROID_HOME || '/opt/android-sdk',
   ANDROID_SDK_CTR: '/opt/android-sdk',
@@ -28,9 +31,16 @@ export const SANDBOX = {
   GRADLE_CACHE_CTR: '/opt/gradle-home',
 
   // ── Network ───────────────────────────────────────────────────────────────
-  // Default: 'bridge' (internet access) so builds can resolve Maven deps.
-  // Set BUILD_NETWORK_MODE=none only when a pre-seeded Maven cache is present.
-  NETWORK_MODE: process.env.BUILD_NETWORK_MODE || 'bridge',
+  //   restricted : internal Docker network, egress only through an allow-list
+  //                proxy (Maven/Gradle/Google hosts). Recommended.
+  //   none       : no network at all (needs a pre-seeded Maven cache)
+  //   bridge     : unrestricted internet access (development only)
+  NETWORK_MODE: (process.env.BUILD_NETWORK_MODE || 'bridge') as 'restricted' | 'none' | 'bridge',
+  NETWORK_NAME: process.env.BUILD_NETWORK_NAME || 'apk-build-net',
+  PROXY_URL: process.env.BUILD_PROXY_URL || 'http://apk-egress-proxy:3128',
+
+  // V1 scope: debug APKs only. Release/AAB need ENABLE_RELEASE_BUILDS=true.
+  ALLOW_RELEASE_BUILDS: process.env.ENABLE_RELEASE_BUILDS === 'true',
 
   // ── Security flags ────────────────────────────────────────────────────────
   NO_NEW_PRIVILEGES: true,

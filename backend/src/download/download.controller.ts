@@ -40,18 +40,16 @@ export class DownloadController {
       throw new NotFoundException("Download link has expired");
     }
 
-    const buildId = build.id;
-    const ext = build.buildType === 'AAB' ? '.aab' : '.apk';
-    const apkPath = this.storage.getApkPath(buildId, ext);
-
-    const exists = await this.storage.fileExists(apkPath);
-    if (!exists) {
+    const artifact = await this.prisma.buildArtifact.findFirst({
+      where: { buildId: build.id },
+      orderBy: [{ recommended: 'desc' }, { createdAt: 'asc' }],
+    });
+    if (!artifact || !(await this.storage.fileExists(artifact.storagePath))) {
       throw new NotFoundException("APK file not found on server");
     }
 
-    res.download(
-      apkPath,
-      `${build.project?.name || "app"}-${build.buildType.toLowerCase()}${ext}`,
-    );
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.type('application/vnd.android.package-archive');
+    res.download(artifact.storagePath, artifact.fileName);
   }
 }

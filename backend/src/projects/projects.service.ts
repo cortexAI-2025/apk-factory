@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { StorageService } from '../storage/storage.service';
 import { LifecycleService } from '../lifecycle/lifecycle.service';
+import { inspectZip } from './zip-validator';
 import { CreateProjectFromUrlDto } from './dto/create-project.dto';
 import { ProjectSourceType, ProjectType } from '@prisma/client';
 import * as path from 'path';
@@ -42,46 +43,61 @@ export class ProjectsService {
   ) {}
 
   async createFromZip(userId: string, file: Express.Multer.File, name?: string, description?: string) {
+    if (!file?.buffer?.length) throw new BadRequestException('No ZIP file received (field "file").');
+
     const projectId = uuidv4();
     const projectDir = await this.storage.createProjectDir(projectId);
-
-    // Extract zip
     const zipPath = path.join(projectDir, 'source.zip');
-    await fs.writeFile(zipPath, file.buffer);
-
     const extractDir = path.join(projectDir, 'source');
-    await fs.mkdir(extractDir, { recursive: true });
+
+    const reject = async (err: any): Promise<never> => {
+      await this.storage.deleteDir(projectDir); // never keep a rejected archive
+      throw err instanceof BadRequestException
+        ? err
+        : new BadRequestException(`Failed to import ZIP: ${String(err?.message || err).slice(0, 160)}`);
+    };
 
     try {
+      await fs.writeFile(zipPath, file.buffer);
+      const inspection = await inspectZip(zipPath, file.buffer.subarray(0, 4));
+      await fs.mkdir(extractDir, { recursive: true });
       await unzipper(zipPath, { dir: extractDir });
+      await this.assertNoLinks(extractDir);
+      await fs.rm(zipPath, { force: true });
+
+      const projectRoot = path.join(extractDir, inspection.rootPrefix);
+      const analysis = await this.analyzeProject(projectRoot);
+      const projectName = (name || path.basename(file.originalname, '.zip')).slice(0, 80);
+
+      return await this.prisma.project.create({
+        data: {
+          id: projectId,
+          name: projectName,
+          description,
+          sourceType: ProjectSourceType.ZIP_UPLOAD,
+          sourcePath: projectRoot,
+          projectType: analysis.projectType,
+          gradleVersion: analysis.gradleVersion,
+          sdkVersion: analysis.sdkVersion,
+          kotlinVersion: analysis.kotlinVersion,
+          compatibilityScore: analysis.compatibilityScore,
+          metadata: analysis as any,
+          userId,
+        },
+      });
     } catch (err) {
-      throw new BadRequestException(`Failed to extract ZIP: ${err.message}`);
+      return reject(err);
     }
+  }
 
-    // Find actual project root (handle nested zip structures)
-    const projectRoot = await this.findProjectRoot(extractDir);
-    const analysis = await this.analyzeProject(projectRoot);
-
-    const projectName = name || path.basename(file.originalname, '.zip');
-
-    const project = await this.prisma.project.create({
-      data: {
-        id: projectId,
-        name: projectName,
-        description,
-        sourceType: ProjectSourceType.ZIP_UPLOAD,
-        sourcePath: projectRoot,
-        projectType: analysis.projectType,
-        gradleVersion: analysis.gradleVersion,
-        sdkVersion: analysis.sdkVersion,
-        kotlinVersion: analysis.kotlinVersion,
-        compatibilityScore: analysis.compatibilityScore,
-        metadata: analysis as any,
-        userId,
-      },
-    });
-
-    return project;
+  /** Defense in depth: nothing but regular files and directories may exist after extraction. */
+  private async assertNoLinks(dir: string): Promise<void> {
+    for (const entry of await fs.readdir(dir, { withFileTypes: true })) {
+      const full = path.join(dir, entry.name);
+      if (entry.isSymbolicLink()) throw new BadRequestException('Symbolic links are not allowed in archives.');
+      if (entry.isDirectory()) await this.assertNoLinks(full);
+      else if (!entry.isFile()) throw new BadRequestException('Special files are not allowed in archives.');
+    }
   }
 
   async createFromUrl(userId: string, dto: CreateProjectFromUrlDto) {

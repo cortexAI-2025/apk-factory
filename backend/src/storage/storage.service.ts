@@ -17,7 +17,7 @@ export class StorageService {
   }
 
   private async ensureDirectories() {
-    const dirs = ['projects', 'apks', 'qr', 'keystores', 'tmp'];
+    const dirs = ['projects', 'apks', 'artifacts', 'qr', 'keystores', 'tmp'];
     for (const dir of dirs) {
       await fs.mkdir(path.join(this.uploadsPath, dir), { recursive: true });
     }
@@ -60,6 +60,15 @@ export class StorageService {
     return path.join(this.uploadsPath, 'apks', `${buildId}${ext}`);
   }
 
+
+  /** Artifacts are stored under opaque ids, never under user-supplied file names. */
+  getArtifactPath(buildId: string, artifactId: string, ext = '.apk'): string {
+    return path.join(this.uploadsPath, 'artifacts', buildId, `${artifactId}${ext}`);
+  }
+
+  getArtifactDir(buildId: string): string {
+    return path.join(this.uploadsPath, 'artifacts', buildId);
+  }
 
   getProjectDir(projectId: string): string {
     return path.join(this.uploadsPath, 'projects', projectId);

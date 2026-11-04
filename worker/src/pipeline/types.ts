@@ -39,6 +39,7 @@ export interface PipelineContext {
   // Build results
   apkHostPath?: string;
   apkUrl?: string;
+  artifactCount?: number;
   apkSize?: number;
   autoFixAttempts: number;
   buildOutput: string;
@@ -51,7 +52,16 @@ export interface PipelineContext {
   reportFix: (attempt: number, description: string, files: string[], summary: string, success: boolean, patches?: any[]) => Promise<void>;
   updateStatus: (status: string, extra?: Record<string, unknown>) => Promise<void>;
   updateProgress: (percent: number, phase: string) => Promise<void>;
-  uploadApk: (apkPath: string) => Promise<{ apkUrl: string; apkSize: number }>;
+  uploadApk: (apkPath: string, meta?: ArtifactUploadMeta) => Promise<{ apkUrl: string; apkSize: number; id?: string; sha256?: string }>;
+}
+
+export interface ArtifactUploadMeta {
+  fileName: string;
+  variant: string;
+  abi: string;
+  module: string;
+  recommended: boolean;
+  sha256: string;
 }
 
 export interface StageResult {

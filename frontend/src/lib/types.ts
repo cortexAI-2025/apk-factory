@@ -46,6 +46,7 @@ export interface Build {
   autoFixAttempts: number;
   createdAt: string;
   fixes?: BuildFix[];
+  artifacts?: BuildArtifact[];
   project?: { id: string; name: string };
 }
 
@@ -108,4 +109,16 @@ export interface ChartPoint {
   total: number;
   success: number;
   failed: number;
+}
+
+export interface BuildArtifact {
+  id: string;
+  fileName: string;
+  variant: string;
+  abi: string;
+  module: string;
+  sizeBytes: number;
+  sha256: string;
+  recommended: boolean;
+  createdAt: string;
 }
