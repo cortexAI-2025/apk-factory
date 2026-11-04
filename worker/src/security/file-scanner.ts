@@ -20,11 +20,17 @@ export interface ScanThreat {
 
 // ── Dangerous file extensions ───────────────────────────────────────────────
 const DANGEROUS_EXTENSIONS = new Set([
-  '.exe', '.dll', '.bat', '.cmd', '.ps1', '.vbs', '.sh', '.bash',
-  '.msi', '.scr', '.pif', '.com', '.hta', '.jar', '.class',
+  '.exe', '.dll', '.ps1', '.vbs',
+  '.msi', '.scr', '.pif', '.com', '.hta', '.class',
 ]);
 
 // ── Extensions allowed in an Android project ────────────────────────────────
+// Legitimate in Android/Gradle projects (gradlew.bat, helper scripts, libs/*.jar). They never
+// run on the host: builds execute inside the unprivileged sandbox, so they only raise a warning.
+const WARN_ONLY_EXTENSIONS = new Set(['.bat', '.cmd', '.sh', '.bash', '.jar']);
+// The wrapper jar every Gradle project ships; it runs inside the sandbox like everything else.
+const GRADLE_WRAPPER_JAR = 'gradle/wrapper/gradle-wrapper.jar';
+
 const ALLOWED_EXTENSIONS = new Set([
   '.java', '.kt', '.kts', '.xml', '.gradle', '.json', '.yaml', '.yml',
   '.properties', '.txt', '.md', '.png', '.jpg', '.jpeg', '.gif',
@@ -145,6 +151,16 @@ export class FileScanner {
       totalBytes += stat.size;
 
       // 1. Extension check
+      if (rel.split(path.sep).join('/') === GRADLE_WRAPPER_JAR) continue;
+      if (WARN_ONLY_EXTENSIONS.has(ext)) {
+        threats.push({
+          severity: 'medium',
+          type: 'EXECUTABLE_SCRIPT_OR_LIBRARY',
+          file: rel,
+          detail: `Bundled ${ext} file (executed only inside the sandbox)`,
+        });
+        continue;
+      }
       if (DANGEROUS_EXTENSIONS.has(ext)) {
         threats.push({
           severity: 'high',
