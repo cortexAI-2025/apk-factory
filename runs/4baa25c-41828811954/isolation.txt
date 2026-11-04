@@ -1,0 +1,24 @@
+✓ runs as unprivileged uid 1000
+✓ no Linux capabilities (CapEff = 0)
+✓ no_new_privs set
+✓ root filesystem is read-only
+✓ Android SDK is read-only
+✓ /tmp and /workspace are writable (needed by Gradle)
+✓ Docker socket is not exposed
+✓ no secrets in the container environment
+✓ another job's workspace is invisible
+✓ only this job’s files are mounted
+✓ no host bind mounts besides the workspace
+✓ memory limit enforced (4g)
+✓ process limit enforced
+✓ open-file and file-size ulimits enforced
+✓ private PID namespace
+✓ no direct internet access
+✓ cloud metadata endpoint unreachable
+✓ proxy refuses non-allow-listed host
+✓ proxy refuses link-local / metadata target
+✓ proxy refuses loopback/other ports
+✓ proxy does not deny an allow-listed host
+✓ container removed after the run
+
+22/22 isolation checks passed (network mode: restricted)

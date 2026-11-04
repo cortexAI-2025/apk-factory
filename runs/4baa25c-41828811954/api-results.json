@@ -1,0 +1,152 @@
+[
+  {
+    "label": "invalid ZIP rejected: plain text renamed .zip",
+    "ok": true,
+    "detail": "HTTP 400 \"The uploaded file is not a valid ZIP archive.\""
+  },
+  {
+    "label": "invalid ZIP rejected: no Gradle wrapper",
+    "ok": true,
+    "detail": "HTTP 400 \"The Gradle wrapper is missing. Include gradlew, gradle/wrapper/gradle-wrapper.properties and gradle/wrapper/gradle-wrapper.jar at the proje"
+  },
+  {
+    "label": "invalid ZIP rejected: path traversal",
+    "ok": true,
+    "detail": "HTTP 400 \"Path escapes the extraction folder: invalid relative path: ../../evil.txt\""
+  },
+  {
+    "label": "invalid ZIP rejected: symbolic link",
+    "ok": true,
+    "detail": "HTTP 400 \"Symbolic links are not allowed in archives: app/link\""
+  },
+  {
+    "label": "invalid ZIP rejected: compression bomb",
+    "ok": true,
+    "detail": "HTTP 400 \"Suspicious compression ratio (zeros.bin): archive rejected.\""
+  },
+  {
+    "label": "invalid ZIP rejected: not an Android project",
+    "ok": true,
+    "detail": "HTTP 400 \"No AndroidManifest.xml found: this does not look like a native Android project.\""
+  },
+  {
+    "label": "upload without a file is rejected (400)",
+    "ok": true,
+    "detail": "HTTP 400"
+  },
+  {
+    "label": "non-.zip file name is rejected (400)",
+    "ok": true,
+    "detail": "HTTP 400"
+  },
+  {
+    "label": "no project was created by any rejected archive",
+    "ok": true,
+    "detail": "0 → 0"
+  },
+  {
+    "label": "broken project is accepted for build",
+    "ok": true,
+    "detail": "HTTP 201"
+  },
+  {
+    "label": "compile error ends in FAILED",
+    "ok": true,
+    "detail": "FAILED"
+  },
+  {
+    "label": "error message names the cause, file and line",
+    "ok": true,
+    "detail": "[COMPILATION_ERROR] Compilation failed: /workspace/app/src/main/java/com/apkfactory/reference/MainActivity.java:16: error: incompatible types: String cannot be converted to int\nHint: Fix the reported "
+  },
+  {
+    "label": "error message does not expose host paths",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "build logs contain no host paths or configured secrets",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "failed build exposes no artifact",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "build lists at least one artifact with name, size and SHA-256",
+    "ok": true,
+    "detail": "{\"id\":\"f81b1088-5212-4c72-9047-4a04eaac7d73\",\"fileName\":\"app-debug.apk\",\"variant\":\"debug\",\"abi\":\"universal\",\"module\":\"app\",\"sizeBytes\":7057,\"sha256\":\"fd986535a6d2fae83d410bd72dacfe4a330ba2295c629bd1e6c32aafec62ea37\",\"recommended\":true,\"createdAt\":\"2026-11-04T12:28:32.013Z\"}"
+  },
+  {
+    "label": "owner can download the APK",
+    "ok": true,
+    "detail": "HTTP 200 7057/7057"
+  },
+  {
+    "label": "downloaded bytes match the displayed SHA-256",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "download is served as an APK attachment, not cacheable",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "second account cannot download the artifact",
+    "ok": true,
+    "detail": "HTTP 404"
+  },
+  {
+    "label": "anonymous request is refused (401)",
+    "ok": true,
+    "detail": "HTTP 401"
+  },
+  {
+    "label": "second account cannot read the build details",
+    "ok": true,
+    "detail": "HTTP 403"
+  },
+  {
+    "label": "second account cannot read the build logs",
+    "ok": true,
+    "detail": "HTTP 403"
+  },
+  {
+    "label": "no static exposure of /files/artifacts/<id>/<id>.apk",
+    "ok": true,
+    "detail": "HTTP 404"
+  },
+  {
+    "label": "no static exposure of /files/apks/<id>.apk",
+    "ok": true,
+    "detail": "HTTP 404"
+  },
+  {
+    "label": "no static exposure of /files/projects/<id>/source/gradlew",
+    "ok": true,
+    "detail": "HTTP 404"
+  },
+  {
+    "label": "no static exposure of /files/keystores/",
+    "ok": true,
+    "detail": "HTTP 404"
+  },
+  {
+    "label": "internal worker endpoint refuses a wrong secret",
+    "ok": true,
+    "detail": "HTTP 401"
+  },
+  {
+    "label": "internal worker endpoint refuses a missing secret",
+    "ok": true,
+    "detail": "HTTP 401"
+  },
+  {
+    "label": "V1 scope: release builds are refused",
+    "ok": true,
+    "detail": "HTTP 400"
+  }
+]

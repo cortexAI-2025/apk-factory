@@ -1,0 +1,11 @@
+✓ registration lands on the dashboard
+✓ ZIP imported from the UI
+✓ build type is limited to debug APK
+✓ UI showed an in-progress state before the result
+✓ UI reports the build as successful
+✓ artifact shows file name, size and SHA-256
+✓ downloaded APK matches the SHA-256 shown in the UI
+✓ APK is a ZIP container (PK header)
+✓ no unexpected browser errors
+
+9/9 checks passed (ui)
