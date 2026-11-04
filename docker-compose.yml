@@ -159,7 +159,13 @@ services:
       BUILD_TIMEOUT_MS: ${BUILD_TIMEOUT_MS:-1500000}
       WORKSPACE_DIR: /tmp/apk-factory/workspaces
       MAVEN_CACHE_DIR: ${MAVEN_CACHE_DIR:-/opt/apk-factory/maven-cache}
-      BUILD_NETWORK_MODE: ${BUILD_NETWORK_MODE:-bridge}
+      # restricted = build containers join the internal network and reach only the
+      # allow-listed hosts through apk-egress-proxy (none | bridge also supported)
+      BUILD_NETWORK_MODE: ${BUILD_NETWORK_MODE:-restricted}
+      BUILD_NETWORK_NAME: apk-build-net
+      BUILD_PROXY_URL: http://apk-egress-proxy:3128
+      BUILD_MAX_WORKSPACE_MB: ${BUILD_MAX_WORKSPACE_MB:-4096}
+      ENABLE_RELEASE_BUILDS: ${ENABLE_RELEASE_BUILDS:-false}
       UPLOADS_PATH: /app/uploads
 
       # Read-only bind mounts inside build containers
@@ -186,6 +192,8 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+      apk-egress-proxy:
+        condition: service_started
 
     deploy:
       resources:
@@ -193,6 +201,25 @@ services:
           cpus: '${WORKER_HOST_CPUS:-4}'
           memory: '${WORKER_HOST_MEMORY:-8G}'
 
+    security_opt:
+      - no-new-privileges:true
+
+  # ─── Egress allow-list proxy for sandboxed builds ─────────────────────────
+  # Build containers sit on the internal network `apk-build-net` (no route to the
+  # internet); this proxy is their only exit, limited to docker/egress-proxy/allowed-domains.txt.
+  apk-egress-proxy:
+    image: ubuntu/squid:latest
+    container_name: apk-egress-proxy
+    restart: unless-stopped
+    logging: *default-logging
+    volumes:
+      - ./docker/egress-proxy/squid.conf:/etc/squid/squid.conf:ro
+      - ./docker/egress-proxy/allowed-domains.txt:/etc/squid/allowed-domains.txt:ro
+    networks:
+      - default
+      - build
+    cap_drop: [ALL]
+    cap_add: [SETUID, SETGID, CHOWN, DAC_OVERRIDE]
     security_opt:
       - no-new-privileges:true
 
@@ -232,6 +259,10 @@ volumes:
   uploads_data:
 
 networks:
+  # Internal: containers on it cannot reach the internet or the host network
+  build:
+    name: apk-build-net
+    internal: true
   default:
     name: apk-factory-net
     driver: bridge
