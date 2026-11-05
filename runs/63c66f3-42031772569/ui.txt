@@ -1,0 +1,14 @@
+✓ registration lands on the dashboard
+✓ repository URL is the default way to import
+✓ ZIP imported from the UI
+✓ build type is limited to debug APK
+✓ UI showed an in-progress state before the result
+✓ UI reports the build as successful
+✓ artifact shows file name, size and SHA-256
+✓ downloaded APK matches the SHA-256 shown in the UI
+✓ APK is a ZIP container (PK header)
+✓ no unexpected browser errors
+✓ repository URL imported from the UI (name taken from the folder)
+✓ build from the repository URL produces a debug APK with SHA-256
+
+12/12 checks passed (ui)
