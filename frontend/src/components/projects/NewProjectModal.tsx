@@ -5,15 +5,17 @@ import toast from 'react-hot-toast';
 import { X, Upload, Github, Loader2, FileArchive, Link } from 'lucide-react';
 import { projectsApi } from '@/lib/api';
 
-type Tab = 'zip' | 'github';
+export type NewProjectTab = 'zip' | 'github';
+type Tab = NewProjectTab;
 
 interface Props {
+  initialTab?: Tab;
   onClose: () => void;
   onSuccess: (project: any) => void;
 }
 
-export function NewProjectModal({ onClose, onSuccess }: Props) {
-  const [tab, setTab] = useState<Tab>('zip');
+export function NewProjectModal({ initialTab = 'github', onClose, onSuccess }: Props) {
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [loading, setLoading] = useState(false);
 
   // ZIP state
@@ -29,7 +31,7 @@ export function NewProjectModal({ onClose, onSuccess }: Props) {
   const onDrop = useCallback((accepted: File[]) => {
     if (accepted[0]) {
       setFile(accepted[0]);
-      const name = accepted[0].name.replace('.zip', '').replace(/[-_]/g, ' ');
+      const name = accepted[0].name.replace(/\.zip$/i, '').replace(/[-_]/g, ' ');
       setZipName(name);
     }
   }, []);
@@ -38,7 +40,7 @@ export function NewProjectModal({ onClose, onSuccess }: Props) {
     onDrop,
     accept: { 'application/zip': ['.zip'] },
     maxFiles: 1,
-    maxSize: 500 * 1024 * 1024,
+    maxSize: 200 * 1024 * 1024,
   });
 
   const handleZipSubmit = async (e: React.FormEvent) => {
@@ -58,14 +60,14 @@ export function NewProjectModal({ onClose, onSuccess }: Props) {
 
   const handleGithubSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!repoUrl) { toast.error('Please enter a GitHub URL'); return; }
+    if (!repoUrl.trim()) { toast.error('Please enter a GitHub URL'); return; }
     setLoading(true);
     try {
       const project = await projectsApi.importUrl({
-        name: repoName || repoUrl.split('/').pop() || 'My Project',
-        sourceUrl: repoUrl,
+        ...(repoName.trim() ? { name: repoName.trim() } : {}), // otherwise named after the repository
+        sourceUrl: repoUrl.trim(),
         sourceType: 'GITHUB_URL',
-        description: repoDesc,
+        ...(repoDesc ? { description: repoDesc } : {}),
       });
       toast.success('Repository imported successfully!');
       onSuccess(project);
@@ -92,7 +94,7 @@ export function NewProjectModal({ onClose, onSuccess }: Props) {
 
         {/* Tabs */}
         <div className="flex border-b border-gray-800">
-          {(['zip', 'github'] as Tab[]).map((t) => (
+          {(['github', 'zip'] as Tab[]).map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -103,7 +105,7 @@ export function NewProjectModal({ onClose, onSuccess }: Props) {
               }`}
             >
               {t === 'zip' ? <Upload className="w-4 h-4" /> : <Github className="w-4 h-4" />}
-              {t === 'zip' ? 'Upload ZIP' : 'GitHub URL'}
+              {t === 'zip' ? 'ZIP file' : 'Repository URL'}
             </button>
           ))}
         </div>
@@ -176,32 +178,35 @@ export function NewProjectModal({ onClose, onSuccess }: Props) {
           ) : (
             <form onSubmit={handleGithubSubmit} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">GitHub Repository URL</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">GitHub repository URL</label>
                 <div className="relative">
                   <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
                   <input
-                    type="url"
+                    type="text"
                     required
+                    autoComplete="off"
+                    spellCheck={false}
+                    data-testid="repo-url"
                     value={repoUrl}
-                    onChange={(e) => {
-                      setRepoUrl(e.target.value);
-                      const parts = e.target.value.split('/');
-                      if (parts.length > 0 && !repoName) {
-                        setRepoName(parts[parts.length - 1] || '');
-                      }
-                    }}
+                    onChange={(e) => setRepoUrl(e.target.value)}
                     className="w-full bg-gray-800 border border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 transition-colors text-sm"
                     placeholder="https://github.com/user/my-android-app"
                   />
                 </div>
-                <p className="text-xs text-gray-600 mt-1">Public repositories only (private requires OAuth)</p>
+                <ul className="text-xs text-gray-500 mt-2 space-y-0.5 list-disc pl-4">
+                  <li>Repository: <code className="text-gray-400">https://github.com/user/app</code></li>
+                  <li>Branch or folder: <code className="text-gray-400">…/tree/main/android</code></li>
+                  <li>ZIP link: <code className="text-gray-400">…/archive/refs/heads/main.zip</code></li>
+                </ul>
+                <p className="text-xs text-gray-600 mt-2">Public repositories only. The project needs its Gradle wrapper (gradlew).</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-1.5">Project name</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                  Project name <span className="text-gray-600">(optional — defaults to the repository name)</span>
+                </label>
                 <input
                   type="text"
-                  required
                   value={repoName}
                   onChange={(e) => setRepoName(e.target.value)}
                   className="w-full bg-gray-800 border border-gray-700 rounded-xl px-4 py-2.5 text-white placeholder-gray-500 focus:outline-none focus:border-green-500 transition-colors text-sm"
@@ -228,7 +233,7 @@ export function NewProjectModal({ onClose, onSuccess }: Props) {
                 className="w-full bg-green-500 hover:bg-green-400 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-colors flex items-center justify-center gap-2"
               >
                 {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Github className="w-4 h-4" />}
-                {loading ? 'Cloning repository...' : 'Import from GitHub'}
+                {loading ? 'Importing repository...' : 'Import from GitHub'}
               </button>
             </form>
           )}

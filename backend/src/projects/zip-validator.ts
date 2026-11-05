@@ -55,8 +55,8 @@ function readEntries(zipPath: string): Promise<yauzl.Entry[]> {
  * Validates an uploaded archive BEFORE extraction:
  *  - real ZIP signature, not encrypted, bounded entry count / sizes / ratio
  *  - no absolute or parent-escaping paths, no symbolic links
- *  - contains a native Android Gradle project with its wrapper, at the archive
- *    root or inside a single parent folder
+ *  - contains exactly one native Android Gradle project with its wrapper, at the
+ *    archive root or up to three folders down
  */
 export async function inspectZip(
   zipPath: string,
@@ -112,11 +112,13 @@ export async function inspectZip(
     if (!name.endsWith('/') && !name.startsWith('__MACOSX/')) files.add(name);
   }
 
-  // ── locate the Gradle project: archive root or exactly one parent folder ──
+  // ── locate the Gradle project: archive root, or up to three folders down ──
+  // (a GitHub "Download ZIP" wraps the repository in one folder, and monorepos keep the
+  //  Android project in a sub-folder, e.g. repo-main/android/)
   const prefixes = new Set<string>(['']);
   for (const f of files) {
-    const i = f.indexOf('/');
-    if (i > 0) prefixes.add(f.slice(0, i + 1));
+    const parts = f.split('/');
+    for (let i = 1; i <= 3 && i < parts.length; i++) prefixes.add(parts.slice(0, i).join('/') + '/');
   }
   const has = (p: string, rel: string) => files.has(p + rel);
   const wrapperFiles = ['gradlew', 'gradle/wrapper/gradle-wrapper.properties', 'gradle/wrapper/gradle-wrapper.jar'];
@@ -130,11 +132,11 @@ export async function inspectZip(
     if (!anyGradle) fail('No Gradle project found: the ZIP must contain build.gradle / settings.gradle.');
     fail(
       'The Gradle wrapper is missing. Include gradlew, gradle/wrapper/gradle-wrapper.properties and ' +
-      'gradle/wrapper/gradle-wrapper.jar at the project root (or inside a single parent folder).',
+      'gradle/wrapper/gradle-wrapper.jar at the project root (or inside a sub-folder).',
     );
   }
   if (candidates.length > 1) {
-    fail('Several Gradle projects found in the archive; upload a ZIP with a single project.');
+    fail(`Several Android Gradle projects found in the archive (${candidates.map((c) => c || '.').slice(0, 5).join(', ')}); upload a ZIP with a single project.`);
   }
   const root = candidates[0];
   if (![...files].some((f) => f.startsWith(root) && f.endsWith('AndroidManifest.xml'))) {

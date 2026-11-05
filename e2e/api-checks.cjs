@@ -53,6 +53,36 @@ const wrapperFiles = [
   const projectsAfter = (await api('/projects', { token: A.token })).body.projects.length;
   check('no project was created by any rejected archive', projectsAfter === projectsBefore, `${projectsBefore} → ${projectsAfter}`);
 
+  // ── 1b. repository URL import: strict URL validation and actionable errors ──
+  const importUrl = (sourceUrl, extra = {}) => api('/projects/import', { method: 'POST', token: A.token, body: { sourceUrl, ...extra } });
+  const msgOf = (r) => String(typeof r.body === 'object' ? JSON.stringify(r.body.message ?? { id: r.body.id, name: r.body.name }) : r.body);
+  const beforeUrlNeg = (await api('/projects', { token: A.token })).body.projects.length;
+  for (const [label, url, re] of [
+    ['non-GitHub host', 'https://evil.example.com/o/r', /Only GitHub/],
+    ['plain http', 'http://github.com/o/r', /https/],
+    ['credentials in URL', 'https://user:pw@github.com/o/r', /credentials/],
+    ['shell metacharacters', 'https://github.com/o/r";touch /tmp/pwned;"', /Invalid|Unsupported/],
+    ['unsupported GitHub page', 'https://github.com/o/r/issues/1', /Unsupported GitHub URL/],
+    ['nonexistent repository', 'https://github.com/cortexAI-2025/this-repository-does-not-exist-xyz', /not found, private, or unreachable|Failed to clone/],
+    ['repository without Gradle project', 'https://github.com/octocat/Hello-World', /No Gradle project found/],
+  ]) {
+    const r = await importUrl(url);
+    check(`repo URL rejected: ${label}`, r.status === 400 && re.test(msgOf(r)), `HTTP ${r.status} ${msgOf(r).slice(0, 140)}`);
+  }
+  const afterUrlNeg = (await api('/projects', { token: A.token })).body.projects.length;
+  check('rejected URL imports left no project behind', afterUrlNeg === beforeUrlNeg, `${beforeUrlNeg} → ${afterUrlNeg}`);
+  if (process.env.E2E_REPO_URL) {
+    const r = await importUrl(process.env.E2E_REPO_URL);
+    check('repo URL import (branch + folder) succeeds', r.status < 300 && r.body.projectType === 'ANDROID_NATIVE', `HTTP ${r.status} ${msgOf(r).slice(0, 160)}`);
+    check('imported project is named after the folder and keeps its source URL', r.body.name === 'reference-android' && r.body.sourceUrl === process.env.E2E_REPO_URL, `${r.body.name}`);
+    // GitHub ZIP link of the same branch (needs real internet access: CI only)
+    const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/tree\/(.+?)\/examples\/reference-android$/.exec(process.env.E2E_REPO_URL);
+    if (m && process.env.E2E_ZIP_LINK === '1') {
+      const z = await importUrl(`https://github.com/${m[1]}/archive/refs/heads/${m[2]}.zip`);
+      check('GitHub ZIP link of the whole repository imports the Android sub-project', z.status < 300 && z.body.projectType === 'ANDROID_NATIVE', `HTTP ${z.status} ${msgOf(z).slice(0, 160)}`);
+    }
+  }
+
   // ── 2. Gradle failure → useful diagnosis, redacted logs ──────────────────
   const fx = L.fixtures();
   const broken = await L.upload(A.token, fx.broken, 'broken-app');

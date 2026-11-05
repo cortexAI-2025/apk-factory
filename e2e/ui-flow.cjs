@@ -26,6 +26,8 @@ const { WEB, OUT, check, sha256 } = L;
 
   // import the ZIP through the modal
   await page.getByRole('button', { name: /new project/i }).first().click();
+  check('repository URL is the default way to import', await page.getByTestId('repo-url').isVisible());
+  await page.getByRole('button', { name: /zip file/i }).click();
   await page.locator('input[type=file]').setInputFiles(fx.ok);
   await page.getByPlaceholder('My Android App').first().fill('Reference App');
   await page.getByRole('button', { name: /upload & import/i }).click();
@@ -78,6 +80,28 @@ const { WEB, OUT, check, sha256 } = L;
   fs.writeFileSync(path.join(OUT, 'ui-report.json'), JSON.stringify({
     token, projectId, buildId, artifactId: detail.artifacts[0].id, fileName: name, sha256: shaShown, size: bytes.length, apk: apkPath,
   }, null, 2));
+
+  // ── second import path: GitHub repository URL (folder of this very repository) ──
+  if (process.env.E2E_REPO_URL) {
+    await page.goto(`${WEB}/dashboard`);
+    await page.getByRole('button', { name: /new project/i }).first().click();
+    await page.getByTestId('repo-url').fill(process.env.E2E_REPO_URL);
+    await page.getByRole('button', { name: /import from github/i }).click();
+    await page.waitForSelector('text=reference-android', { timeout: 120000 });
+    check('repository URL imported from the UI (name taken from the folder)', true);
+    await shot('repo-import');
+    await page.getByText('reference-android').first().click();
+    await page.waitForURL('**/projects/*', { timeout: 30000 });
+    if (process.env.E2E_STUB !== '1') {
+      await page.getByRole('button', { name: /build apk/i }).click();
+      await page.waitForURL('**/builds/*', { timeout: 60000 });
+      await page.waitForSelector('text=Build Successful', { timeout: Number(process.env.E2E_TIMEOUT_MS || 1500000) });
+      await page.waitForSelector('[data-testid=artifact-row]', { timeout: 30000 });
+      const sha2 = (await page.locator('[data-testid=artifact-sha256]').first().innerText()).trim();
+      check('build from the repository URL produces a debug APK with SHA-256', /^[a-f0-9]{64}$/.test(sha2), sha2);
+      await shot('repo-build');
+    }
+  }
   await browser.close();
   L.finish('ui');
 })().catch((e) => { console.error(e); process.exit(1); });

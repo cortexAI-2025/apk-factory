@@ -16,7 +16,7 @@ import { projectsApi, metricsApi } from '@/lib/api';
 import { useAuth } from '@/lib/hooks/useAuth';
 import { Project, BuildStatus, BuildStats, LiveBuildItem, ChartPoint } from '@/lib/types';
 import { formatDistanceToNow, format } from 'date-fns';
-import { NewProjectModal } from '@/components/projects/NewProjectModal';
+import { NewProjectModal, NewProjectTab } from '@/components/projects/NewProjectModal';
 
 // ── Status config ─────────────────────────────────────────────────────────────
 const statusConfig: Record<string, { color: string; label: string; dot: string }> = {
@@ -256,6 +256,8 @@ function SuccessRing({ rate }: { rate: number }) {
 export default function DashboardPage() {
   const { user } = useAuth();
   const [showModal, setShowModal] = useState(false);
+  const [modalTab, setModalTab] = useState<NewProjectTab>('github');
+  const openModal = (tab: NewProjectTab) => { setModalTab(tab); setShowModal(true); };
 
   const { data: projectData, isLoading: projectsLoading, refetch } = useQuery({
     queryKey: ['projects'],
@@ -297,7 +299,7 @@ export default function DashboardPage() {
             <p className="text-gray-400 mt-1">Build, fix and ship Android APKs</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => openModal('github')}
             className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white px-4 py-2.5 rounded-xl font-medium transition-colors"
           >
             <Plus className="w-4 h-4" />
@@ -395,7 +397,7 @@ export default function DashboardPage() {
         {/* ── Quick actions ── */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => openModal('zip')}
             className="glass rounded-xl p-5 flex items-center gap-4 hover:border-green-500/30 transition-all text-left group"
           >
             <div className="w-12 h-12 bg-green-500/10 rounded-xl flex items-center justify-center">
@@ -410,7 +412,7 @@ export default function DashboardPage() {
           </button>
 
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => openModal('github')}
             className="glass rounded-xl p-5 flex items-center gap-4 hover:border-blue-500/30 transition-all text-left group"
           >
             <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center">
@@ -418,9 +420,9 @@ export default function DashboardPage() {
             </div>
             <div>
               <div className="text-white font-medium group-hover:text-blue-400 transition-colors">
-                Import from GitHub
+                Import from repository URL
               </div>
-              <div className="text-gray-500 text-sm">Paste a repository URL</div>
+              <div className="text-gray-500 text-sm">Paste a GitHub repository, folder or ZIP link</div>
             </div>
           </button>
         </div>
@@ -446,7 +448,7 @@ export default function DashboardPage() {
                 Upload a ZIP or import from GitHub to get started
               </p>
               <button
-                onClick={() => setShowModal(true)}
+                onClick={() => openModal('github')}
                 className="inline-flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white px-4 py-2 rounded-lg font-medium transition-colors text-sm"
               >
                 <Plus className="w-4 h-4" />
@@ -465,6 +467,7 @@ export default function DashboardPage() {
 
       {showModal && (
         <NewProjectModal
+          initialTab={modalTab}
           onClose={() => setShowModal(false)}
           onSuccess={() => { setShowModal(false); refetch(); }}
         />

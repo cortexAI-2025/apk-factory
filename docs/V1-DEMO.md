@@ -18,8 +18,16 @@ docker compose run --rm backend npx prisma migrate deploy
 ```
 
 1. Ouvrir <http://localhost:3000>, créer un compte.
-2. **New Project → Upload ZIP** : choisir `examples/reference-android.zip`
-   (ou `reference-android-nested.zip`, projet dans un dossier parent).
+2. **New Project** — deux façons d'importer :
+   - **Repository URL** (onglet par défaut) : coller une URL GitHub publique —
+     `https://github.com/<user>/<repo>`, un dossier/branche
+     `https://github.com/<user>/<repo>/tree/<branche>/<dossier>`, ou un lien ZIP
+     `https://github.com/<user>/<repo>/archive/refs/heads/<branche>.zip`.
+     Exemple : `https://github.com/cortexAI-2025/apk-factory/tree/claude/v1-zip-to-debug-apk/examples/reference-android`
+   - **ZIP file** : choisir `examples/reference-android.zip` (ou le ZIP téléchargé depuis GitHub ;
+     le projet peut être à la racine ou jusqu'à trois dossiers plus bas).
+   Dans les deux cas, le projet doit contenir son wrapper Gradle (`gradlew`) ; il est validé
+   avant toute compilation (limites de taille, pas de lien symbolique, un seul projet Android).
 3. Ouvrir le projet → **Build APK** (Debug APK). Suivre l'état Queued → Building → Successful.
 4. Dans la carte *Debug APK* : nom, taille, **SHA-256**, bouton **Download**.
 5. Vérifier : `sha256sum app-debug.apk` doit égaler le SHA-256 affiché ;

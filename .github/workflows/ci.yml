@@ -60,6 +60,8 @@ jobs:
       REDIS_PASSWORD: ci_redis_password
       JWT_SECRET: ci-jwt-secret-value-0123456789
       WORKER_SECRET: ci-worker-secret-value-0123456789
+      E2E_REPO_URL: https://github.com/${{ github.repository }}/tree/${{ github.head_ref || github.ref_name }}/examples/reference-android
+      E2E_ZIP_LINK: '1'
     services:
       postgres:
         image: postgres:16-alpine

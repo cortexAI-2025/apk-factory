@@ -51,7 +51,7 @@ export const projectsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data);
   },
-  importUrl: (data: { name: string; sourceUrl: string; sourceType: string; description?: string }) =>
+  importUrl: (data: { name?: string; sourceUrl: string; sourceType?: string; description?: string }) =>
     api.post('/projects/import', data).then((r) => r.data),
   delete: (id: string) => api.delete(`/projects/${id}`).then((r) => r.data),
 };

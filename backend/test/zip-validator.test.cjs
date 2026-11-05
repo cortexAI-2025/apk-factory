@@ -41,6 +41,14 @@ test('accepts a project inside a single parent folder (GitHub style)', async (t)
   const f = make(t, project('MyApp-main/'));
   assert.equal((await inspectZip(f, head(f))).rootPrefix, 'MyApp-main/');
 });
+test('accepts a monorepo ZIP: repository folder + android sub-folder', async (t) => {
+  const f = make(t, [...project('repo-main/android/'), { name: 'repo-main/README.md' }, { name: 'repo-main/web/package.json' }]);
+  assert.equal((await inspectZip(f, head(f))).rootPrefix, 'repo-main/android/');
+});
+test('does not look deeper than three folders', async (t) => {
+  const f = make(t, project('a/b/c/d/'));
+  await rejects(inspectZip(f, head(f)), /wrapper is missing|No Gradle/);
+});
 test('ignores __MACOSX metadata', async (t) => {
   const f = make(t, [...project('App/'), { name: '__MACOSX/App/._gradlew' }]);
   assert.equal((await inspectZip(f, head(f))).rootPrefix, 'App/');
@@ -91,4 +99,5 @@ test('rejects too many entries', async (t) => {
 test('rejects an ambiguous archive with two projects', async (t) => {
   const f = make(t, [...project('a/'), ...project('b/')]);
   await rejects(inspectZip(f, head(f)), /single project/);
+  await rejects(inspectZip(f, head(f)), /a\/, b\/|b\/, a\//);
 });
