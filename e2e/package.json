@@ -1,0 +1,7 @@
+{
+  "name": "apk-factory-e2e",
+  "private": true,
+  "description": "End-to-end checks: ZIP -> build -> owner-only debug APK",
+  "scripts": { "ui": "node ui-flow.cjs", "api": "node api-checks.cjs" },
+  "devDependencies": { "playwright": "^1.48.0" }
+}

@@ -1,12 +1,13 @@
-import { IsString, IsEnum, IsOptional, IsUrl, MaxLength } from 'class-validator';
+import { IsString, IsEnum, IsOptional, MaxLength } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { ProjectSourceType } from '@prisma/client';
 
 export class CreateProjectFromUrlDto {
-  @ApiProperty({ example: 'My Android App' })
+  @ApiPropertyOptional({ example: 'My Android App', description: 'Defaults to the repository name' })
+  @IsOptional()
   @IsString()
   @MaxLength(200)
-  name: string;
+  name?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -14,11 +15,16 @@ export class CreateProjectFromUrlDto {
   @MaxLength(500)
   description?: string;
 
-  @ApiProperty({ example: 'https://github.com/user/my-android-app' })
-  @IsUrl()
+  @ApiProperty({
+    example: 'https://github.com/user/my-android-app',
+    description: 'GitHub repository, /tree/<branch>/<folder> URL, or GitHub ZIP link',
+  })
+  @IsString()
+  @MaxLength(400)
   sourceUrl: string;
 
-  @ApiProperty({ enum: ProjectSourceType, example: ProjectSourceType.GITHUB_URL })
+  @ApiPropertyOptional({ enum: ProjectSourceType, example: ProjectSourceType.GITHUB_URL })
+  @IsOptional()
   @IsEnum([ProjectSourceType.GITHUB_URL, ProjectSourceType.GITHUB_OAUTH])
-  sourceType: ProjectSourceType;
+  sourceType?: ProjectSourceType;
 }

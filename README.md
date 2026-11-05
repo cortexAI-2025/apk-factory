@@ -6,6 +6,8 @@ A production-ready SaaS platform that automatically builds, fixes and packages A
 
 ---
 
+> **V1 demo (ZIP → debug APK):** see [docs/V1-DEMO.md](docs/V1-DEMO.md) for the replay steps, the CI checks and the known limits.
+
 ## Architecture
 
 ```

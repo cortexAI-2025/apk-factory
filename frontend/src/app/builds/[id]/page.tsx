@@ -14,6 +14,7 @@ import { buildsApi } from '@/lib/api';
 import { useBuildSocket } from '@/lib/hooks/useBuildSocket';
 import { BuildLog, Build, BuildStatus, BuildFix } from '@/lib/types';
 import { DiffViewer } from '@/components/builds/DiffViewer';
+import { ArtifactList } from '@/components/builds/ArtifactList';
 import { formatDistanceToNow } from 'date-fns';
 
 const LOG_COLORS: Record<string, string> = {
@@ -195,28 +196,22 @@ export default function BuildViewerPage() {
                   Cancel
                 </button>
               )}
-              {activeStatus === 'SUCCESS' && build?.apkUrl && (
-                <>
-                  <a
-                    href={build.apkUrl}
-                    download
-                    className="flex items-center gap-2 bg-green-500 hover:bg-green-400 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Download {build.buildType === 'AAB' ? 'AAB' : 'APK'}
-                    {build.apkSize && ` (${(build.apkSize / 1024 / 1024).toFixed(1)}MB)`}
-                  </a>
-                  <button
-                    onClick={handleGenerateLink}
-                    className="flex items-center gap-2 border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm transition-colors"
-                  >
-                    <Share2 className="w-4 h-4" />
-                    Share
-                  </button>
-                </>
+              {activeStatus === 'SUCCESS' && (build?.artifacts?.length ?? 0) > 0 && (
+                <button
+                  onClick={handleGenerateLink}
+                  className="flex items-center gap-2 border border-gray-700 hover:border-gray-500 text-gray-300 hover:text-white px-3 py-2 rounded-lg text-sm transition-colors"
+                  title="Creates a public link anyone can use for 7 days"
+                >
+                  <Share2 className="w-4 h-4" />
+                  Create share link
+                </button>
               )}
             </div>
           </div>
+
+          {activeStatus === 'SUCCESS' && (build?.artifacts?.length ?? 0) > 0 && (
+            <ArtifactList projectId={projectId} buildId={buildId} artifacts={build!.artifacts!} />
+          )}
 
           {/* Public link + QR */}
           {build?.publicLink && (

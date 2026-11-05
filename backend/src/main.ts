@@ -35,9 +35,10 @@ async function bootstrap() {
     }),
   );
 
-  // Static files for APK downloads
+  // Only QR codes are public static files. Sources and artifacts are NEVER served
+  // statically: artifacts go through the authenticated owner-only download route.
   const uploadsPath = process.env.UPLOADS_PATH || path.join(process.cwd(), 'uploads');
-  app.useStaticAssets(uploadsPath, { prefix: '/files' });
+  app.useStaticAssets(path.join(uploadsPath, 'qr'), { prefix: '/files/qr' });
 
   // Swagger documentation
   if (process.env.NODE_ENV !== 'production') {

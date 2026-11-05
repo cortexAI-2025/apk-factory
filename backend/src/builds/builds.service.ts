@@ -14,6 +14,11 @@ import * as QRCode from 'qrcode';
 import { v4 as uuidv4 } from 'uuid';
 import * as path from 'path';
 
+const ARTIFACT_PUBLIC_FIELDS = {
+  id: true, fileName: true, variant: true, abi: true, module: true,
+  sizeBytes: true, sha256: true, recommended: true, createdAt: true,
+} as const;
+
 @Injectable()
 export class BuildsService {
   private readonly logger = new Logger(BuildsService.name);
@@ -41,6 +46,11 @@ export class BuildsService {
       throw new BadRequestException(
         `Build limit reached (${user.buildsLimit} builds on Free plan). Upgrade to Pro for unlimited builds.`,
       );
+    }
+
+    // V1 scope: debug APKs only (release signing and AAB are out of scope)
+    if (dto.buildType !== BuildType.DEBUG && process.env.ENABLE_RELEASE_BUILDS !== 'true') {
+      throw new BadRequestException('Only debug APK builds are supported in this version.');
     }
 
     const gradleCmd = this.resolveGradleCommand(dto.buildType);
@@ -98,6 +108,7 @@ export class BuildsService {
       include: {
         project: { select: { id: true, name: true, userId: true } },
         fixes: { orderBy: { attempt: 'asc' } },
+        artifacts: { orderBy: [{ recommended: 'desc' }, { fileName: 'asc' }], select: ARTIFACT_PUBLIC_FIELDS },
         _count: { select: { logs: true } },
       },
     });
@@ -105,6 +116,17 @@ export class BuildsService {
     if (!build) throw new NotFoundException('Build not found');
     if (build.project.userId !== userId) throw new ForbiddenException();
     return build;
+  }
+
+  /** Owner-only: returns the stored file path + metadata, or 404 (never reveals other users' builds). */
+  async getArtifactForDownload(userId: string, buildId: string, artifactId: string) {
+    const artifact = await this.prisma.buildArtifact.findFirst({
+      where: { id: artifactId, buildId, build: { project: { userId } } },
+    });
+    if (!artifact || !(await this.storage.fileExists(artifact.storagePath))) {
+      throw new NotFoundException('Artifact not found');
+    }
+    return artifact;
   }
 
   async getLogs(userId: string, buildId: string, offset = 0, limit = 500) {

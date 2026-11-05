@@ -15,6 +15,8 @@ import { createReadStream } from 'fs';
 import * as path from 'path';
 import axios from 'axios';
 import { logger } from '../logger';
+import { redact } from '../security/redact';
+import { SANDBOX } from '../security/sandbox-config';
 import { PipelineContext } from './types';
 import { stageExtract }  from './stages/01-extract';
 import { stageDetect }   from './stages/02-detect';
@@ -50,7 +52,8 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
     buildOutput:       '',
 
     // ── Callbacks into the backend API ──────────────────────────────────────
-    log: async (level, message) => {
+    log: async (level, rawMessage) => {
+      const message = redact(rawMessage);
       logger[level]?.(`[${input.buildId}] ${message}`);
       try {
         await apiPost(`/internal/builds/${input.buildId}/logs`, { level, message });
@@ -67,6 +70,7 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
 
     updateStatus: async (status, extra = {}) => {
       try {
+        if (typeof extra.errorMessage === 'string') extra = { ...extra, errorMessage: redact(extra.errorMessage) };
         await apiPatch(`/internal/builds/${input.buildId}/status`, {
           status,
           runtime: ctx.runtime,
@@ -81,16 +85,22 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
       if (job) await job.updateProgress(percent).catch(() => {});
     },
 
-    uploadApk: async (apkPath) => {
+    uploadApk: async (apkPath, meta) => {
       const stream = createReadStream(apkPath);
-      const url = `${API_BASE}/api/v1/internal/builds/${input.buildId}/apk`;
+      const qs = new URLSearchParams({
+        fileName: meta?.fileName || path.basename(apkPath),
+        variant: meta?.variant || 'default',
+        abi: meta?.abi || 'universal',
+        module: meta?.module || '',
+        recommended: String(meta?.recommended ?? true),
+        ...(meta?.sha256 ? { sha256: meta.sha256 } : {}),
+      });
+      const url = `${API_BASE}/api/v1/internal/builds/${input.buildId}/artifacts?${qs}`;
       const response = await axios.post(url, stream, {
-        headers: {
-          'x-worker-secret': WORKER_SECRET,
-          'Content-Type': 'application/octet-stream',
-        },
+        headers: { 'x-worker-secret': WORKER_SECRET, 'Content-Type': 'application/octet-stream' },
         maxContentLength: Infinity,
         maxBodyLength: Infinity,
+        timeout: 10 * 60 * 1000,
       });
       return response.data;
     },
@@ -105,6 +115,11 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
     { name: 'BUILDING',    fn: () => stageBuild(ctx, job) },
     { name: 'OUTPUTTING',  fn: () => stageOutput(ctx) },
   ];
+
+  if (input.buildType !== 'DEBUG' && !SANDBOX.ALLOW_RELEASE_BUILDS) {
+    await ctx.updateStatus('FAILED', { errorMessage: 'Only debug APK builds are supported in this version.' });
+    return;
+  }
 
   try {
     await ctx.updateStatus('BUILDING');

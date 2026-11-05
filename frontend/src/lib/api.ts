@@ -51,7 +51,7 @@ export const projectsApi = {
       headers: { 'Content-Type': 'multipart/form-data' },
     }).then((r) => r.data);
   },
-  importUrl: (data: { name: string; sourceUrl: string; sourceType: string; description?: string }) =>
+  importUrl: (data: { name?: string; sourceUrl: string; sourceType?: string; description?: string }) =>
     api.post('/projects/import', data).then((r) => r.data),
   delete: (id: string) => api.delete(`/projects/${id}`).then((r) => r.data),
 };
@@ -70,6 +70,21 @@ export const buildsApi = {
       .then((r) => r.data),
   generatePublicLink: (projectId: string, buildId: string) =>
     api.post(`/projects/${projectId}/builds/${buildId}/public-link`).then((r) => r.data),
+  /** Authenticated download (the JWT lives in localStorage, so a plain <a href> cannot be used). */
+  downloadArtifact: async (projectId: string, buildId: string, artifactId: string, fileName: string) => {
+    const res = await api.get(
+      `/projects/${projectId}/builds/${buildId}/artifacts/${artifactId}/download`,
+      { responseType: 'blob' },
+    );
+    const url = URL.createObjectURL(res.data);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10_000);
+  },
   cancel: (projectId: string, buildId: string) =>
     api.post(`/projects/${projectId}/builds/${buildId}/cancel`).then((r) => r.data),
 };
