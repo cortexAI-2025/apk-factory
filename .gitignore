@@ -45,3 +45,6 @@ keystores/*.jks
 keystores/*.keystore
 keystores/*.p12
 keystores/KEYSTORE_CREDENTIALS.txt
+
+# Local Redis snapshots
+dump.rdb
