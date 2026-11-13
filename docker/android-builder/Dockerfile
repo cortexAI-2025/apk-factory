@@ -32,7 +32,7 @@ ENV ANDROID_HOME=/opt/android-sdk \
     ANDROID_SDK_ROOT=/opt/android-sdk \
     JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
-ENV PATH="${JAVA_HOME}/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/34.0.0:${PATH}"
+ENV PATH="${JAVA_HOME}/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/36.0.0:${PATH}"
 
 # ── Install Android SDK Command-Line Tools ────────────────────────────────────
 RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
@@ -47,12 +47,16 @@ RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
 RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true \
     && sdkmanager \
         "platform-tools" \
+        "platforms;android-36" \
+        "platforms;android-35" \
         "platforms;android-34" \
         "platforms;android-33" \
         "platforms;android-32" \
         "platforms;android-31" \
         "platforms;android-30" \
         "platforms;android-29" \
+        "build-tools;36.0.0" \
+        "build-tools;35.0.0" \
         "build-tools;34.0.0" \
         "build-tools;33.0.2" \
         "build-tools;32.0.0" \
