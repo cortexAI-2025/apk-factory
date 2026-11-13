@@ -1,0 +1,62 @@
+[
+  {
+    "label": "registration lands on the dashboard",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "repository URL is the default way to import",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "ZIP imported from the UI (project card shown)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "build type is limited to debug APK",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "UI showed an in-progress state before the result",
+    "ok": true,
+    "detail": "Pending,Building,Build Successful"
+  },
+  {
+    "label": "UI reports the build as successful",
+    "ok": true,
+    "detail": "Pending,Building,Build Successful"
+  },
+  {
+    "label": "artifact shows file name, size and SHA-256",
+    "ok": true,
+    "detail": "app-debug.apk 6.9 KB d420865dbed5e5f927755e3d29d2a91360c9e7016826366a0dd14bf3434930ee"
+  },
+  {
+    "label": "downloaded APK matches the SHA-256 shown in the UI",
+    "ok": true,
+    "detail": "d420865dbed5e5f927755e3d29d2a91360c9e7016826366a0dd14bf3434930ee"
+  },
+  {
+    "label": "APK is a ZIP container (PK header)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "no unexpected browser errors",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "repository URL imported from the UI (name taken from the folder)",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "build from the repository URL produces a debug APK with SHA-256",
+    "ok": true,
+    "detail": "96773f88843c5de0aa7e939e2fc514a561d1ae0f937b6475f4bb255265996c0c"
+  }
+]
