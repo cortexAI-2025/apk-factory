@@ -1,17 +1,21 @@
-version: '3.9'
-
 # ─────────────────────────────────────────────────────────────────────────────
-# APK Factory — Full Stack
+# APK Factory — full stack (single VM: 4 vCPU / 8 GB recommended)
 #
-# Services:
-#   postgres      PostgreSQL 16
-#   redis         Redis 7 (queue + cache)
-#   backend       NestJS API (port 4000)
-#   frontend      Next.js UI (port 3000)
-#   worker        BullMQ build worker (talks to Docker socket)
+# Services
+#   postgres        PostgreSQL 16                    (127.0.0.1 only)
+#   redis           Redis 7 — build queue            (127.0.0.1 only)
+#   migrate         one-shot: prisma migrate deploy  (runs before the API starts)
+#   backend         NestJS API                       (127.0.0.1:4000, exposed via Tailscale)
+#   frontend        Next.js UI                       (127.0.0.1:3000, exposed via Tailscale)
+#   worker          BullMQ worker; starts build containers through the Docker socket
+#   apk-egress-proxy allow-list proxy: the only exit of build containers
 #
-# Each build runs in its own isolated Docker container spawned by the worker:
-#   docker run --rm --memory=3g --cpus=2 --network=none --read-only ...
+# Every build runs in its own container (see worker/src/runtimes/base.runtime.ts):
+#   --network apk-build-net (internal) + proxy, --cap-drop ALL, --read-only, uid 1000,
+#   memory/CPU/PIDs/file-size limits, workspace quota, no secret in its environment.
+#
+# Nothing here is published on a public interface: keep the VM firewall closed and
+# reach the services only through Tailscale (see docs/DEPLOY-VPS.md).
 # ─────────────────────────────────────────────────────────────────────────────
 
 x-logging: &default-logging
@@ -19,6 +23,9 @@ x-logging: &default-logging
   options:
     max-size: "20m"
     max-file: "5"
+
+x-backend-image: &backend-image apk-factory/backend:local
+x-worker-image: &worker-image apk-factory/worker:local
 
 services:
   # ─── PostgreSQL ────────────────────────────────────────────────────────────
@@ -29,16 +36,19 @@ services:
     environment:
       POSTGRES_DB: apk_factory
       POSTGRES_USER: apk_user
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?err}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
-      - "127.0.0.1:5432:5432"     # Bind to loopback only
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U apk_user -d apk_factory"]
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 1g }
     security_opt:
       - no-new-privileges:true
 
@@ -49,31 +59,52 @@ services:
     logging: *default-logging
     command: >
       redis-server
-        --requirepass ${REDIS_PASSWORD:?err}
+        --requirepass ${REDIS_PASSWORD:?set REDIS_PASSWORD in .env}
         --appendonly yes
-        --maxmemory 512mb
-        --maxmemory-policy allkeys-lru
+        --maxmemory 256mb
+        --maxmemory-policy noeviction
     volumes:
       - redis_data:/data
     ports:
-      - "127.0.0.1:6379:6379"     # Bind to loopback only
+      - "127.0.0.1:6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 320m }
+    security_opt:
+      - no-new-privileges:true
+
+  # ─── Database migrations (one-shot) ───────────────────────────────────────
+  migrate:
+    image: *backend-image
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    logging: *default-logging
+    command: ["npx", "prisma", "migrate", "deploy"]
+    environment:
+      DATABASE_URL: postgresql://apk_user:${POSTGRES_PASSWORD}@postgres:5432/apk_factory
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
     security_opt:
       - no-new-privileges:true
 
   # ─── Backend API ──────────────────────────────────────────────────────────
   backend:
+    image: *backend-image
     build:
       context: .
       dockerfile: docker/backend/Dockerfile
     restart: unless-stopped
     logging: *default-logging
     ports:
-      - "4000:4000"
+      - "127.0.0.1:4000:4000"
     environment:
       NODE_ENV: production
       PORT: 4000
@@ -81,11 +112,15 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET:?err}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
       JWT_EXPIRY: 7d
-      FRONTEND_URL: ${FRONTEND_URL:-http://localhost:3000}
-      API_BASE_URL: ${API_BASE_URL:-http://localhost:4000}
-      WORKER_SECRET: ${WORKER_SECRET:?err}
+      # Public (tailnet) URLs used by the browser and by download links
+      FRONTEND_URL: ${FRONTEND_URL:?set FRONTEND_URL in .env}
+      API_BASE_URL: ${API_BASE_URL:?set API_BASE_URL in .env}
+      # Private instance: no self-registration. Accounts are created on the VM with
+      # `docker compose exec backend npm run user:create -- ...`
+      ALLOW_PUBLIC_REGISTRATION: ${ALLOW_PUBLIC_REGISTRATION:-false}
+      WORKER_SECRET: ${WORKER_SECRET:?set WORKER_SECRET in .env}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
       UPLOADS_PATH: /app/uploads
@@ -99,8 +134,8 @@ services:
     volumes:
       - uploads_data:/app/uploads
     depends_on:
-      postgres:
-        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
       redis:
         condition: service_healthy
     healthcheck:
@@ -109,38 +144,47 @@ services:
       timeout: 10s
       retries: 5
       start_period: 20s
+    deploy:
+      resources:
+        limits: { cpus: "1.0", memory: 768m }
     security_opt:
       - no-new-privileges:true
     read_only: true
     tmpfs:
-      - /tmp:size=256m
+      - /tmp:size=128m
 
   # ─── Frontend ─────────────────────────────────────────────────────────────
   frontend:
     build:
       context: .
       dockerfile: docker/frontend/Dockerfile
+      args:
+        # Inlined at build time: must be the public API origin seen by the browser
+        NEXT_PUBLIC_API_URL: ${API_BASE_URL:?set API_BASE_URL in .env}
+        NEXT_PUBLIC_WS_URL: ${API_BASE_URL:?set API_BASE_URL in .env}
     restart: unless-stopped
     logging: *default-logging
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     environment:
       NODE_ENV: production
-      NEXT_PUBLIC_API_URL: ${API_BASE_URL:-http://localhost:4000}
-      NEXT_PUBLIC_WS_URL: ${API_BASE_URL:-http://localhost:4000}
     depends_on:
       - backend
+    deploy:
+      resources:
+        limits: { cpus: "0.5", memory: 384m }
     security_opt:
       - no-new-privileges:true
     read_only: true
     tmpfs:
-      - /tmp:size=128m
-      - /app/.next/cache:size=512m
+      - /tmp:size=64m
+      - /app/.next/cache:size=256m
 
   # ─── Build Worker ─────────────────────────────────────────────────────────
-  # The worker spawns Docker containers for each build — it needs
-  # access to the Docker socket and the uploads volume.
+  # Holds the Docker socket: it is the component that starts build containers.
+  # Its own memory limit does NOT cover the build containers (separate cgroups).
   worker:
+    image: *worker-image
     build:
       context: .
       dockerfile: docker/worker/Dockerfile
@@ -153,44 +197,36 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       API_BASE_URL: http://backend:4000
       WORKER_SECRET: ${WORKER_SECRET}
-      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+      # One build at a time on a 4 vCPU / 8 GB VM (see docs/DEPLOY-VPS.md)
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-1}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
 
-      # Sandbox configuration passed to DockerRunner
+      # Sandbox limits for each build container
       BUILDER_IMAGE: apk-factory/android-builder:latest
       BUILD_MEMORY: ${BUILD_MEMORY:-3g}
       BUILD_CPUS: ${BUILD_CPUS:-2}
       BUILD_TIMEOUT_MS: ${BUILD_TIMEOUT_MS:-1500000}
-      WORKSPACE_DIR: /tmp/apk-factory/workspaces
-      MAVEN_CACHE_DIR: ${MAVEN_CACHE_DIR:-/opt/apk-factory/maven-cache}
-      # restricted = build containers join the internal network and reach only the
-      # allow-listed hosts through apk-egress-proxy (none | bridge also supported)
+      BUILD_MAX_WORKSPACE_MB: ${BUILD_MAX_WORKSPACE_MB:-2048}
+      # Same path inside and outside the container (the daemon resolves it on the host)
+      WORKSPACE_DIR: ${WORKSPACE_HOST_DIR:-/srv/apk-factory/workspaces}
+      MAVEN_CACHE_DIR: ${MAVEN_CACHE_DIR:-/srv/apk-factory/maven-cache}
       BUILD_NETWORK_MODE: ${BUILD_NETWORK_MODE:-restricted}
       BUILD_NETWORK_NAME: apk-build-net
       BUILD_PROXY_URL: http://apk-egress-proxy:3128
-      BUILD_MAX_WORKSPACE_MB: ${BUILD_MAX_WORKSPACE_MB:-4096}
       ENABLE_RELEASE_BUILDS: ${ENABLE_RELEASE_BUILDS:-false}
       UPLOADS_PATH: /app/uploads
 
-      # Read-only bind mounts inside build containers
       ANDROID_HOME: /opt/android-sdk
       GRADLE_CACHE_DIR: /opt/gradle-home
-
-      # Seccomp (set to 'true' and mount the profile)
       USE_SECCOMP: ${USE_SECCOMP:-false}
       SECCOMP_PROFILE: /etc/apk-factory/seccomp.json
 
     volumes:
-      # Docker socket — required to spawn build containers
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      # Shared uploads (APKs written here)
+      - /var/run/docker.sock:/var/run/docker.sock
       - uploads_data:/app/uploads
-      # Workspace: host bind-mount so spawned build containers can access the
-      # same path via Docker daemon (Docker volumes are not visible to DinD).
-      - /tmp/apk-factory/workspaces:/tmp/apk-factory/workspaces
-      # Optional Maven offline cache (host path must be identical inside worker)
-      - ${MAVEN_CACHE_DIR:-/opt/apk-factory/maven-cache}:${MAVEN_CACHE_DIR:-/opt/apk-factory/maven-cache}:ro
+      - ${WORKSPACE_HOST_DIR:-/srv/apk-factory/workspaces}:${WORKSPACE_HOST_DIR:-/srv/apk-factory/workspaces}
+      - ${MAVEN_CACHE_DIR:-/srv/apk-factory/maven-cache}:${MAVEN_CACHE_DIR:-/srv/apk-factory/maven-cache}:ro
 
     depends_on:
       redis:
@@ -202,16 +238,12 @@ services:
 
     deploy:
       resources:
-        limits:
-          cpus: '${WORKER_HOST_CPUS:-4}'
-          memory: '${WORKER_HOST_MEMORY:-8G}'
+        limits: { cpus: "1.0", memory: 768m }
 
     security_opt:
       - no-new-privileges:true
 
   # ─── Egress allow-list proxy for sandboxed builds ─────────────────────────
-  # Build containers sit on the internal network `apk-build-net` (no route to the
-  # internet); this proxy is their only exit, limited to docker/egress-proxy/allowed-domains.txt.
   apk-egress-proxy:
     image: ubuntu/squid:latest
     container_name: apk-egress-proxy
@@ -225,38 +257,21 @@ services:
       - build
     cap_drop: [ALL]
     cap_add: [SETUID, SETGID, CHOWN, DAC_OVERRIDE]
+    deploy:
+      resources:
+        limits: { cpus: "0.25", memory: 128m }
     security_opt:
       - no-new-privileges:true
 
-  # ─── Android builder image (run once before first build) ──────────────────
-  # Builds the Docker image used for all sandboxed APK builds.
-  # The SDK and Gradle wrapper ZIPs are baked directly into this image.
-  # Run:  docker-compose run --rm android-builder-init
+  # ─── Android builder image (run once, see scripts/vps/install.sh) ─────────
   android-builder-init:
     build:
       context: .
       dockerfile: docker/android-builder/Dockerfile
     image: apk-factory/android-builder:latest
-    entrypoint: ["/bin/bash", "-c", "echo '✓ android-builder image ready' && java -version 2>&1 && echo 'SDK:' && ls /opt/android-sdk/platforms/ 2>/dev/null || echo 'SDK not found'"]
+    entrypoint: ["/bin/bash", "-c", "java -version 2>&1 | head -1 && ls /opt/android-sdk/platforms/"]
     profiles:
       - init
-
-  # ─── Queue monitor (optional) ─────────────────────────────────────────────
-  bull-board:
-    image: ghcr.io/felixmosh/bull-board:latest
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:3001:3000"
-    environment:
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      REDIS_PASSWORD: ${REDIS_PASSWORD}
-    depends_on:
-      - redis
-    profiles:
-      - monitoring
-    security_opt:
-      - no-new-privileges:true
 
 volumes:
   postgres_data:
@@ -264,7 +279,7 @@ volumes:
   uploads_data:
 
 networks:
-  # Internal: containers on it cannot reach the internet or the host network
+  # Internal: containers on it have no route to the internet or the host
   build:
     name: apk-build-net
     internal: true

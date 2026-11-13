@@ -1,0 +1,35 @@
+# Build context for every image (compose context is the repository root).
+# Keeps local artefacts, dependencies, tests and SECRETS out of the images.
+
+# dependencies and build outputs: rebuilt inside the image
+**/node_modules
+**/.next
+**/dist
+**/out
+
+# version control and editor files
+.git
+**/.DS_Store
+
+# secrets and private data: never copied into an image
+.env
+.env.*
+**/.env
+**/.env.*
+keystores
+**/keystores
+uploads
+**/uploads
+**/*.jks
+**/*.keystore
+**/*.key
+
+# not needed to build or run the services
+e2e
+examples
+docs
+scripts
+backend/test
+worker/tests
+**/*.log
+**/*.tsbuildinfo

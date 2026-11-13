@@ -37,8 +37,7 @@ Thumbs.db
 # TypeScript
 *.tsbuildinfo
 
-# Docker
-.dockerignore
+# Docker (the .dockerignore file itself is versioned; see the file at the repository root)
 
 # Keystores — NEVER commit keystore files or credentials
 keystores/*.jks

@@ -16,6 +16,8 @@ import { LoginDto } from './dto/login.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
 import { ConfigService } from '@nestjs/config';
+import { ForbiddenException } from '@nestjs/common';
+import { isPublicRegistrationEnabled } from './registration-policy';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -28,6 +30,9 @@ export class AuthController {
   @Post('register')
   @ApiOperation({ summary: 'Register a new user' })
   async register(@Body() dto: RegisterDto) {
+    if (!isPublicRegistrationEnabled()) {
+      throw new ForbiddenException('Registration is closed on this instance. Ask the administrator for an account.');
+    }
     return this.authService.register(dto);
   }
 
