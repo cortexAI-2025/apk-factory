@@ -1,0 +1,254 @@
+[2026-11-13T14:00:09.888Z] [32minfo[39m: APK Factory Worker started {"concurrency":"2","redis":"localhost:6379"}
+[2026-11-13T14:00:23.607Z] [32minfo[39m: Processing build job 1 {"buildId":"b37cf86b-da9e-4c98-872b-85a4c15224af"}
+[2026-11-13T14:00:23.607Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] BuildExecutor.run — type=DEBUG autoFix=true
+[2026-11-13T14:00:23.641Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Running stage: EXTRACTING
+[2026-11-13T14:00:23.654Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ─── Stage 1/6: EXTRACT ─────────────────────────────
+[2026-11-13T14:00:23.691Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Prepared isolated workspace: /workspace
+[2026-11-13T14:00:23.702Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Running stage: DETECTING
+[2026-11-13T14:00:23.711Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ─── Stage 2/6: DETECT ──────────────────────────────
+[2026-11-13T14:00:23.717Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Project type    : ANDROID_NATIVE
+[2026-11-13T14:00:23.723Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Gradle wrapper  : true
+[2026-11-13T14:00:23.729Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Gradle version  : 8.2.1
+[2026-11-13T14:00:23.734Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] App name        : APK Factory Reference
+[2026-11-13T14:00:23.740Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Running stage: VALIDATING
+[2026-11-13T14:00:23.747Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ─── Stage 3/6: VALIDATE ────────────────────────────
+[2026-11-13T14:00:23.751Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ✓ gradlew found and made executable
+[2026-11-13T14:00:23.756Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ✓ gradle-wrapper.properties found
+[2026-11-13T14:00:23.760Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ✓ build.gradle found at project root
+[2026-11-13T14:00:23.764Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ✓ app/build.gradle found
+[2026-11-13T14:00:23.767Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ✓ AndroidManifest.xml found
+[2026-11-13T14:00:23.771Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ✓ settings.gradle found
+[2026-11-13T14:00:23.776Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Gradle command: ./gradlew assembleDebug
+[2026-11-13T14:00:23.782Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Validation passed (0 warning(s))
+[2026-11-13T14:00:23.787Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Running stage: SCANNING
+[2026-11-13T14:00:23.793Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ─── Stage 4/6: SCAN ────────────────────────────────
+[2026-11-13T14:00:23.797Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Scanning: /workspace
+[2026-11-13T14:00:23.811Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Scanned 10 file(s) (76 KB)
+[2026-11-13T14:00:23.815Z] [33mwarn[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ℹ️ [MEDIUM] EXECUTABLE_SCRIPT_OR_LIBRARY in gradlew.bat: Bundled .bat file (executed only inside the sandbox)
+[2026-11-13T14:00:23.821Z] [33mwarn[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] 1 low/medium warning(s) — build continues
+[2026-11-13T14:00:23.826Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Running stage: BUILDING
+[2026-11-13T14:00:23.832Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ─── Stage 5/6: BUILD ───────────────────────────────
+[2026-11-13T14:00:23.922Z] [32minfo[39m: [runtime] Forced runtime: docker (process)
+[2026-11-13T14:00:23.923Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Runtime: docker (isolation=process)
+[2026-11-13T14:00:23.927Z] [33mwarn[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Maven offline cache: not found — builds require network access (disable --network=none)
+[2026-11-13T14:00:23.931Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Command: ./gradlew assembleDebug
+[2026-11-13T14:00:58.395Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:preBuild UP-TO-DATE
+[2026-11-13T14:00:58.397Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:preDebugBuild UP-TO-DATE
+[2026-11-13T14:00:58.398Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+[2026-11-13T14:00:58.491Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:javaPreCompileDebug
+[2026-11-13T14:00:58.493Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:checkDebugAarMetadata
+[2026-11-13T14:00:58.494Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:generateDebugResValues
+[2026-11-13T14:00:58.495Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mapDebugSourceSetPaths
+[2026-11-13T14:00:58.497Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:generateDebugResources
+[2026-11-13T14:00:58.690Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeDebugResources
+[2026-11-13T14:00:58.691Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:packageDebugResources
+[2026-11-13T14:00:59.190Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:createDebugCompatibleScreenManifests
+[2026-11-13T14:00:59.191Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:extractDeepLinksDebug
+[2026-11-13T14:00:59.192Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:parseDebugLocalResources
+[2026-11-13T14:00:59.291Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:processDebugMainManifest
+[2026-11-13T14:00:59.690Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:processDebugManifest
+[2026-11-13T14:00:59.691Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeDebugShaders
+[2026-11-13T14:00:59.692Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:compileDebugShaders NO-SOURCE
+[2026-11-13T14:00:59.692Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:generateDebugAssets
+[2026-11-13T14:00:59.713Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeDebugAssets
+[2026-11-13T14:00:59.811Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:compressDebugAssets
+[2026-11-13T14:00:59.812Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:desugarDebugFileDependencies
+[2026-11-13T14:00:59.813Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:processDebugJavaRes NO-SOURCE
+[2026-11-13T14:00:59.814Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:processDebugManifestForPackage
+[2026-11-13T14:00:59.890Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeDebugJavaResource
+[2026-11-13T14:01:00.213Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:checkDebugDuplicateClasses
+[2026-11-13T14:01:00.214Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeExtDexDebug
+[2026-11-13T14:01:00.311Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeLibDexDebug
+[2026-11-13T14:01:00.313Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeDebugJniLibFolders
+[2026-11-13T14:01:00.314Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeDebugNativeLibs NO-SOURCE
+[2026-11-13T14:01:00.316Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:stripDebugDebugSymbols NO-SOURCE
+[2026-11-13T14:01:00.390Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:processDebugResources
+[2026-11-13T14:01:00.890Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:validateSigningDebug
+[2026-11-13T14:01:02.890Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:compileDebugJavaWithJavac
+[2026-11-13T14:01:06.911Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:dexBuilderDebug
+[2026-11-13T14:01:06.912Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeDebugGlobalSynthetics
+[2026-11-13T14:01:06.913Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:writeDebugAppMetadata
+[2026-11-13T14:01:06.915Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:writeDebugSigningConfigVersions
+[2026-11-13T14:01:06.991Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:mergeProjectDexDebug
+[2026-11-13T14:01:07.191Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:packageDebug
+[2026-11-13T14:01:07.192Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:createDebugApkListingFileRedirect
+[2026-11-13T14:01:07.193Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] > Task :app:assembleDebug
+[2026-11-13T14:01:07.194Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] BUILD SUCCESSFUL in 42s
+[2026-11-13T14:01:07.728Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] BUILD SUCCESSFUL (43.8s, runtime=docker)
+[2026-11-13T14:01:07.731Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Running stage: OUTPUTTING
+[2026-11-13T14:01:07.737Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ─── Stage 6/6: OUTPUT ──────────────────────────────
+[2026-11-13T14:01:07.758Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Found 1 debug APK(s):
+[2026-11-13T14:01:07.764Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af]   ★ app/build/outputs/apk/debug/app-debug.apk — variant debug, universal, 0.01 MB, sha256 ca5eb6e4673645c0b69524564165d8d52defb48a8b14b5239c7b3e954af3fd2e
+[2026-11-13T14:01:07.776Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] ✓ 1 artifact(s) uploaded
+[2026-11-13T14:01:07.782Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Cleaning up workspace...
+[2026-11-13T14:01:07.787Z] [33mwarn[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Workspace cleanup failed: EACCES: permission denied, rmdir '/workspace/.gradle/8.2.1'
+[2026-11-13T14:01:07.798Z] [32minfo[39m: [b37cf86b-da9e-4c98-872b-85a4c15224af] Pipeline complete. APK: http://localhost:4000/api/v1/projects/8e0c1d4a-fbd8-403c-9667-039df74f50f2/builds/b37cf86b-da9e-4c98-872b-85a4c15224af/artifacts/33230636-c0e0-4902-be38-fdf4f6e0cf8f/download
+[2026-11-13T14:01:07.808Z] [32minfo[39m: Job 1 completed successfully
+[2026-11-13T14:01:09.966Z] [32minfo[39m: Processing build job 2 {"buildId":"63324660-5639-4864-ad41-32b676f7c7b3"}
+[2026-11-13T14:01:09.966Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] BuildExecutor.run — type=DEBUG autoFix=true
+[2026-11-13T14:01:09.972Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Running stage: EXTRACTING
+[2026-11-13T14:01:09.981Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ─── Stage 1/6: EXTRACT ─────────────────────────────
+[2026-11-13T14:01:10.024Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Prepared isolated workspace: /workspace
+[2026-11-13T14:01:10.028Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Running stage: DETECTING
+[2026-11-13T14:01:10.032Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ─── Stage 2/6: DETECT ──────────────────────────────
+[2026-11-13T14:01:10.038Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Project type    : ANDROID_NATIVE
+[2026-11-13T14:01:10.041Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Gradle wrapper  : true
+[2026-11-13T14:01:10.044Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Gradle version  : 8.2.1
+[2026-11-13T14:01:10.047Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] App name        : APK Factory Reference
+[2026-11-13T14:01:10.050Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Running stage: VALIDATING
+[2026-11-13T14:01:10.054Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ─── Stage 3/6: VALIDATE ────────────────────────────
+[2026-11-13T14:01:10.058Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ✓ gradlew found and made executable
+[2026-11-13T14:01:10.061Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ✓ gradle-wrapper.properties found
+[2026-11-13T14:01:10.065Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ✓ build.gradle found at project root
+[2026-11-13T14:01:10.068Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ✓ app/build.gradle found
+[2026-11-13T14:01:10.071Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ✓ AndroidManifest.xml found
+[2026-11-13T14:01:10.075Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ✓ settings.gradle found
+[2026-11-13T14:01:10.078Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Gradle command: ./gradlew assembleDebug
+[2026-11-13T14:01:10.080Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Validation passed (0 warning(s))
+[2026-11-13T14:01:10.083Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Running stage: SCANNING
+[2026-11-13T14:01:10.087Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ─── Stage 4/6: SCAN ────────────────────────────────
+[2026-11-13T14:01:10.090Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Scanning: /workspace
+[2026-11-13T14:01:10.097Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Scanned 11 file(s) (76 KB)
+[2026-11-13T14:01:10.100Z] [33mwarn[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ℹ️ [MEDIUM] EXECUTABLE_SCRIPT_OR_LIBRARY in gradlew.bat: Bundled .bat file (executed only inside the sandbox)
+[2026-11-13T14:01:10.102Z] [33mwarn[39m: [63324660-5639-4864-ad41-32b676f7c7b3] 1 low/medium warning(s) — build continues
+[2026-11-13T14:01:10.105Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Running stage: BUILDING
+[2026-11-13T14:01:10.109Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ─── Stage 5/6: BUILD ───────────────────────────────
+[2026-11-13T14:01:10.112Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Runtime: docker (isolation=process)
+[2026-11-13T14:01:10.115Z] [33mwarn[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Maven offline cache: not found — builds require network access (disable --network=none)
+[2026-11-13T14:01:10.117Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Command: ./gradlew assembleDebug
+[2026-11-13T14:01:44.152Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:preBuild UP-TO-DATE
+[2026-11-13T14:01:44.157Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:preDebugBuild UP-TO-DATE
+[2026-11-13T14:01:44.228Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeDebugNativeDebugMetadata
+[2026-11-13T14:01:44.328Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:checkDebugAarMetadata
+[2026-11-13T14:01:44.329Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:javaPreCompileDebug
+[2026-11-13T14:01:44.330Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:generateDebugResValues
+[2026-11-13T14:01:44.331Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mapDebugSourceSetPaths
+[2026-11-13T14:01:44.331Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:generateDebugResources
+[2026-11-13T14:01:44.428Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeDebugResources
+[2026-11-13T14:01:44.528Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:packageDebugResources
+[2026-11-13T14:01:45.028Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:createDebugCompatibleScreenManifests
+[2026-11-13T14:01:45.029Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:extractDeepLinksDebug
+[2026-11-13T14:01:45.031Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:parseDebugLocalResources
+[2026-11-13T14:01:45.128Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:processDebugMainManifest
+[2026-11-13T14:01:45.530Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:processDebugManifest
+[2026-11-13T14:01:45.531Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeDebugShaders
+[2026-11-13T14:01:45.531Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:compileDebugShaders NO-SOURCE
+[2026-11-13T14:01:45.532Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:generateDebugAssets UP-TO-DATE
+[2026-11-13T14:01:45.533Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeDebugAssets
+[2026-11-13T14:01:45.534Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:compressDebugAssets
+[2026-11-13T14:01:45.534Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:desugarDebugFileDependencies
+[2026-11-13T14:01:45.535Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:processDebugJavaRes NO-SOURCE
+[2026-11-13T14:01:45.629Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:processDebugManifestForPackage
+[2026-11-13T14:01:45.728Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeDebugJavaResource
+[2026-11-13T14:01:46.052Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:checkDebugDuplicateClasses
+[2026-11-13T14:01:46.053Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeExtDexDebug
+[2026-11-13T14:01:46.054Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeLibDexDebug
+[2026-11-13T14:01:46.151Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeDebugJniLibFolders
+[2026-11-13T14:01:46.153Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeDebugNativeLibs NO-SOURCE
+[2026-11-13T14:01:46.155Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:stripDebugDebugSymbols NO-SOURCE
+[2026-11-13T14:01:46.228Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:processDebugResources
+[2026-11-13T14:01:46.731Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:validateSigningDebug
+[2026-11-13T14:01:48.728Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:compileDebugJavaWithJavac
+[2026-11-13T14:01:52.850Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:dexBuilderDebug
+[2026-11-13T14:01:52.851Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeDebugGlobalSynthetics
+[2026-11-13T14:01:52.852Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:writeDebugAppMetadata
+[2026-11-13T14:01:52.928Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:writeDebugSigningConfigVersions
+[2026-11-13T14:01:53.028Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:mergeProjectDexDebug
+[2026-11-13T14:01:53.128Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:packageDebug
+[2026-11-13T14:01:53.129Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:createDebugApkListingFileRedirect
+[2026-11-13T14:01:53.130Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] > Task :app:assembleDebug
+[2026-11-13T14:01:53.130Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] BUILD SUCCESSFUL
+[2026-11-13T14:01:53.691Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] BUILD SUCCESSFUL (43.6s, runtime=docker)
+[2026-11-13T14:01:53.695Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Running stage: OUTPUTTING
+[2026-11-13T14:01:53.700Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ─── Stage 6/6: OUTPUT ──────────────────────────────
+[2026-11-13T14:01:53.720Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Found 1 debug APK(s):
+[2026-11-13T14:01:53.725Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3]   ★ app/build/outputs/apk/debug/app-debug.apk — variant debug, universal, 0.01 MB, sha256 3a89cb3523bb4fbf0cd37f9230c6b43e3f1fdf901839180cf1850e87392ba0bb
+[2026-11-13T14:01:53.736Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] ✓ 1 artifact(s) uploaded
+[2026-11-13T14:01:53.739Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Cleaning up workspace...
+[2026-11-13T14:01:53.744Z] [33mwarn[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Workspace cleanup failed: EACCES: permission denied, rmdir '/workspace/.gradle/8.2.1'
+[2026-11-13T14:01:53.752Z] [32minfo[39m: [63324660-5639-4864-ad41-32b676f7c7b3] Pipeline complete. APK: http://localhost:4000/api/v1/projects/f72ab64c-5038-4bb7-8657-33d1d3641b5d/builds/63324660-5639-4864-ad41-32b676f7c7b3/artifacts/4b913b49-a3fc-4be0-b2bf-1f1b8317547d/download
+[2026-11-13T14:01:53.757Z] [32minfo[39m: Job 2 completed successfully
+[2026-11-13T14:02:01.314Z] [32minfo[39m: Processing build job 3 {"buildId":"f60e585a-8b9d-4ff9-af41-76526f124be5"}
+[2026-11-13T14:02:01.314Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] BuildExecutor.run — type=DEBUG autoFix=false
+[2026-11-13T14:02:01.321Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Running stage: EXTRACTING
+[2026-11-13T14:02:01.325Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ─── Stage 1/6: EXTRACT ─────────────────────────────
+[2026-11-13T14:02:01.338Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Prepared isolated workspace: /workspace
+[2026-11-13T14:02:01.340Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Running stage: DETECTING
+[2026-11-13T14:02:01.343Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ─── Stage 2/6: DETECT ──────────────────────────────
+[2026-11-13T14:02:01.347Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Project type    : ANDROID_NATIVE
+[2026-11-13T14:02:01.349Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Gradle wrapper  : true
+[2026-11-13T14:02:01.351Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Gradle version  : 8.2.1
+[2026-11-13T14:02:01.353Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] App name        : APK Factory Reference
+[2026-11-13T14:02:01.355Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Running stage: VALIDATING
+[2026-11-13T14:02:01.358Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ─── Stage 3/6: VALIDATE ────────────────────────────
+[2026-11-13T14:02:01.360Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ✓ gradlew found and made executable
+[2026-11-13T14:02:01.362Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ✓ gradle-wrapper.properties found
+[2026-11-13T14:02:01.365Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ✓ build.gradle found at project root
+[2026-11-13T14:02:01.367Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ✓ app/build.gradle found
+[2026-11-13T14:02:01.369Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ✓ AndroidManifest.xml found
+[2026-11-13T14:02:01.371Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ✓ settings.gradle found
+[2026-11-13T14:02:01.374Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Gradle command: ./gradlew assembleDebug
+[2026-11-13T14:02:01.375Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Validation passed (0 warning(s))
+[2026-11-13T14:02:01.377Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Running stage: SCANNING
+[2026-11-13T14:02:01.381Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ─── Stage 4/6: SCAN ────────────────────────────────
+[2026-11-13T14:02:01.383Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Scanning: /workspace
+[2026-11-13T14:02:01.387Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Scanned 10 file(s) (76 KB)
+[2026-11-13T14:02:01.389Z] [33mwarn[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ℹ️ [MEDIUM] EXECUTABLE_SCRIPT_OR_LIBRARY in gradlew.bat: Bundled .bat file (executed only inside the sandbox)
+[2026-11-13T14:02:01.392Z] [33mwarn[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] 1 low/medium warning(s) — build continues
+[2026-11-13T14:02:01.394Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Running stage: BUILDING
+[2026-11-13T14:02:01.398Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] ─── Stage 5/6: BUILD ───────────────────────────────
+[2026-11-13T14:02:01.400Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Runtime: docker (isolation=process)
+[2026-11-13T14:02:01.402Z] [33mwarn[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Maven offline cache: not found — builds require network access (disable --network=none)
+[2026-11-13T14:02:01.404Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Command: ./gradlew assembleDebug
+[2026-11-13T14:02:35.418Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:preBuild UP-TO-DATE
+[2026-11-13T14:02:35.419Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:preDebugBuild UP-TO-DATE
+[2026-11-13T14:02:35.420Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeDebugNativeDebugMetadata NO-SOURCE
+[2026-11-13T14:02:35.516Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:javaPreCompileDebug
+[2026-11-13T14:02:35.517Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:checkDebugAarMetadata
+[2026-11-13T14:02:35.518Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:generateDebugResValues
+[2026-11-13T14:02:35.616Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mapDebugSourceSetPaths
+[2026-11-13T14:02:35.617Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:generateDebugResources
+[2026-11-13T14:02:35.715Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeDebugResources
+[2026-11-13T14:02:35.716Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:packageDebugResources
+[2026-11-13T14:02:36.215Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:createDebugCompatibleScreenManifests
+[2026-11-13T14:02:36.216Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:extractDeepLinksDebug
+[2026-11-13T14:02:36.216Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:parseDebugLocalResources
+[2026-11-13T14:02:36.315Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:processDebugMainManifest
+[2026-11-13T14:02:36.715Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:processDebugManifest
+[2026-11-13T14:02:36.719Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeDebugShaders
+[2026-11-13T14:02:36.719Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:compileDebugShaders NO-SOURCE
+[2026-11-13T14:02:36.723Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:generateDebugAssets UP-TO-DATE
+[2026-11-13T14:02:36.729Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeDebugAssets
+[2026-11-13T14:02:36.730Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:compressDebugAssets
+[2026-11-13T14:02:36.736Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:desugarDebugFileDependencies
+[2026-11-13T14:02:36.737Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:processDebugJavaRes NO-SOURCE
+[2026-11-13T14:02:36.739Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:processDebugManifestForPackage
+[2026-11-13T14:02:36.815Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeDebugJavaResource
+[2026-11-13T14:02:37.015Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:checkDebugDuplicateClasses
+[2026-11-13T14:02:37.115Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeExtDexDebug
+[2026-11-13T14:02:37.117Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeLibDexDebug
+[2026-11-13T14:02:37.216Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeDebugJniLibFolders
+[2026-11-13T14:02:37.217Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:mergeDebugNativeLibs NO-SOURCE
+[2026-11-13T14:02:37.218Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:stripDebugDebugSymbols NO-SOURCE
+[2026-11-13T14:02:37.315Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:processDebugResources
+[2026-11-13T14:02:37.816Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:validateSigningDebug
+[2026-11-13T14:02:39.816Z] [32minfo[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:compileDebugJavaWithJavac
+[2026-11-13T14:02:41.115Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] /workspace/app/src/main/java/com/apkfactory/reference/MainActivity.java:16: error: incompatible types: String cannot be converted to int
+[2026-11-13T14:02:41.217Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] FAILURE: Build failed with an exception.
+[2026-11-13T14:02:41.222Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Execution failed for task ':app:compileDebugJavaWithJavac'.
+[2026-11-13T14:02:41.224Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Compilation failed; see the compiler error output for details.
+[2026-11-13T14:02:41.231Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] * Exception is:
+[2026-11-13T14:02:41.232Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] org.gradle.api.tasks.TaskExecutionException: Execution failed for task ':app:compileDebugJavaWithJavac'.
+[2026-11-13T14:02:41.254Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+[2026-11-13T14:02:41.277Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Caused by: org.gradle.api.internal.tasks.compile.CompilationFailedException: Compilation failed; see the compiler error output for details.
+[2026-11-13T14:02:41.366Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] at org.gradle.api.internal.tasks.execution.CatchExceptionTaskExecuter.execute(CatchExceptionTaskExecuter.java:36)
+[2026-11-13T14:02:41.375Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] BUILD FAILED in 39s
+[2026-11-13T14:02:41.390Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] > Task :app:compileDebugJavaWithJavac FAILED
+[2026-11-13T14:02:41.859Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] BUILD FAILED (exit=1)
+[2026-11-13T14:02:41.864Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Stage BUILDING failed: [COMPILATION_ERROR] Compilation failed: /workspace/app/src/main/java/com/apkfactory/reference/MainActivity.java:16: error: incompatible types: String cannot be converted to int
+Hint: Fix the reported source errors and re-import the project.
+  /workspace/app/src/main/java/com/apkfactory/reference/MainActivity.java:16: error: incompatible types: String cannot be converted to int
+[2026-11-13T14:02:41.864Z] [31merror[39m: [f60e585a-8b9d-4ff9-af41-76526f124be5] Stage BUILDING failed: [COMPILATION_ERROR] Compilation failed: /workspace/app/src/main/java/com/apkfactory/reference/MainActivity.java:16: error: incompatible types: String cannot be converted to int
+Hint: Fix the reported source errors and re-import the project.
+  /workspace/app/src/main/java/com/apkfactory/reference/MainActivity.java:16: error: incompatible types: String cannot be converted to int
+[2026-11-13T14:02:41.873Z] [32minfo[39m: Job 3 completed successfully

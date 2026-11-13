@@ -1,0 +1,29 @@
+✓ upload refused with a wrong worker secret (401)
+✓ checksum mismatch is rejected (400) and stores nothing
+✓ file name rejected: path traversal name
+✓ file name rejected: script name
+✓ file name rejected: double extension
+✓ file name rejected: AAB while release builds are disabled
+✓ file name rejected: empty name
+✓ empty artifact is rejected (400)
+✓ oversized artifact is refused and leaves no file
+✓ nothing was stored by the rejected uploads
+✓ valid upload accepted without a client checksum (201)
+✓ second variant accepted with a matching checksum
+✓ build lists both variants, the recommended one first
+✓ apkUrl points to the authenticated download route, not a static file
+✓ API exposes SHA-256 and size but never the storage path
+✓ files are stored under opaque ids, never under user-supplied names
+✓ owner downloads app-universal-debug.apk with the right bytes
+✓ other account gets 404 for app-universal-debug.apk
+✓ owner downloads app-arm64-v8a-debug.apk with the right bytes
+✓ other account gets 404 for app-arm64-v8a-debug.apk
+✓ unknown artifact id gives 404
+✓ malformed artifact id is rejected (400/404)
+✓ a finished build no longer accepts artifacts (409)
+✓ artifact stored for the project to delete
+✓ deleting a project removes its artifact files
+✓ deleting the account removes every artifact file
+✓ the other account is unaffected by that deletion
+
+27/27 checks passed (artifacts)
