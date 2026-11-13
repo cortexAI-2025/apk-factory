@@ -1,5 +1,5 @@
 import { BadRequestException } from '@nestjs/common';
-import { execFile } from 'child_process';
+import { execFile, spawn } from 'child_process';
 import * as fs from 'fs/promises';
 import * as os from 'os';
 import * as path from 'path';
@@ -95,13 +95,69 @@ export function splitTreePath(treePath: string[], refs: string[]): { ref: string
   return bad(`Branch or tag "${treePath[0]}" was not found in the repository.`);
 }
 
+/** Bytes under a directory (no symlink following), used to stop a clone that grows past the limit. */
+async function dirBytes(dir: string): Promise<number> {
+  let total = 0;
+  const stack = [dir];
+  while (stack.length) {
+    const d = stack.pop()!;
+    let entries;
+    try { entries = await fs.readdir(d, { withFileTypes: true }); } catch { continue; }
+    for (const e of entries) {
+      const full = path.join(d, e.name);
+      if (e.isDirectory()) stack.push(full);
+      else if (e.isFile()) { try { total += (await fs.lstat(full)).size; } catch {} }
+    }
+  }
+  return total;
+}
+
+/** `git clone` that is killed as soon as the checkout (incl. objects) exceeds the size limit. */
+async function gitCloneWatched(args: string[], dest: string, o: GitOptions): Promise<void> {
+  const home = await fs.mkdtemp(path.join(os.tmpdir(), 'git-home-'));
+  const limit = DEFAULT_ZIP_LIMITS.maxTotalBytes;
+  try {
+    await new Promise<void>((resolve, reject) => {
+      const child = spawn('git', [...protocolArgs(o), ...args], { env: GIT_ENV(home), stdio: ['ignore', 'ignore', 'pipe'] });
+      let reason: 'size' | 'time' | undefined;
+      let stderr = '';
+      child.stderr.on('data', (d) => { if (stderr.length < 4000) stderr += d.toString(); });
+      const poll = setInterval(async () => {
+        if (reason) return;
+        if ((await dirBytes(dest)) > limit) { reason = 'size'; child.kill('SIGKILL'); }
+      }, 500);
+      const timer = setTimeout(() => { reason = 'time'; child.kill('SIGKILL'); }, 120_000);
+      child.on('error', reject);
+      child.on('close', (code) => {
+        clearInterval(poll); clearTimeout(timer);
+        if (reason === 'size') return reject(new BadRequestException(`The repository is larger than ${Math.round(limit / 1048576)} MB.`));
+        if (reason === 'time') return reject(new BadRequestException('Failed to clone the repository: timeout.'));
+        if (code === 0) {
+          // final check: a fast clone can finish between two polls
+          dirBytes(dest).then((n) => (n > limit
+            ? reject(new BadRequestException(`The repository is larger than ${Math.round(limit / 1048576)} MB.`))
+            : resolve()), reject);
+          return;
+        }
+        reject(new Error(stderr.trim().split('\n').pop() || `git exited with ${code}`));
+      });
+    });
+  } finally {
+    await fs.rm(home, { recursive: true, force: true });
+  }
+}
+
 export async function cloneRepo(cloneUrl: string, dest: string, ref: string | undefined, o: GitOptions = {}): Promise<void> {
   const args = ['clone', '--depth=1', '--single-branch', '--no-tags', '--no-recurse-submodules', '-c', 'core.symlinks=false',
     ...(ref ? ['--branch', ref] : []), '--', cloneUrl, dest];
   try {
-    await git(args, { timeout: 120_000 }, o);
+    await gitCloneWatched(args, dest, o);
   } catch (err: any) {
-    return bad(`Failed to clone the repository: ${/timed out|ETIMEDOUT|killed/i.test(String(err.message)) ? 'timeout' : 'not found or not accessible'}.`);
+    if (err instanceof BadRequestException) {
+      await fs.rm(dest, { recursive: true, force: true }); // never leave a partial checkout behind
+      throw err;
+    }
+    return bad('Failed to clone the repository: not found or not accessible.');
   }
   // symlinks are written as plain files (core.symlinks=false); refuse repositories that contain any
   const tree = await git(['ls-files', '-s'], { cwd: dest, timeout: 30_000 }, o);

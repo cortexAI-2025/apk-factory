@@ -3,6 +3,7 @@
 set -euo pipefail
 APK="${1:?usage: emulator-check.sh app-debug.apk [out-dir]}"
 OUT="${2:-$(dirname "$APK")}"
+mkdir -p "$OUT"
 PKG=com.apkfactory.reference
 EXPECTED="APK Factory Reference OK"
 

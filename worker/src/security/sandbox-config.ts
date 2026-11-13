@@ -34,8 +34,8 @@ export const SANDBOX = {
   //   restricted : internal Docker network, egress only through an allow-list
   //                proxy (Maven/Gradle/Google hosts). Recommended.
   //   none       : no network at all (needs a pre-seeded Maven cache)
-  //   bridge     : unrestricted internet access (development only)
-  NETWORK_MODE: (process.env.BUILD_NETWORK_MODE || 'bridge') as 'restricted' | 'none' | 'bridge',
+  //   bridge     : unrestricted internet access (development only, must be asked for explicitly)
+  NETWORK_MODE: (process.env.BUILD_NETWORK_MODE || 'restricted') as 'restricted' | 'none' | 'bridge',
   NETWORK_NAME: process.env.BUILD_NETWORK_NAME || 'apk-build-net',
   PROXY_URL: process.env.BUILD_PROXY_URL || 'http://apk-egress-proxy:3128',
 

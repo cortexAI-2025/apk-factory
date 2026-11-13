@@ -22,7 +22,7 @@ const { WEB, OUT, check, sha256 } = L;
   await page.fill('input[type=password]', `Pw-${Date.now()}-x`);
   await page.click('button[type=submit]');
   await page.waitForURL('**/dashboard', { timeout: 30000 });
-  check('registration lands on the dashboard', true);
+  check('registration lands on the dashboard', await page.getByText(/welcome back/i).first().isVisible());
 
   // import the ZIP through the modal
   await page.getByRole('button', { name: /new project/i }).first().click();
@@ -32,7 +32,7 @@ const { WEB, OUT, check, sha256 } = L;
   await page.getByPlaceholder('My Android App').first().fill('Reference App');
   await page.getByRole('button', { name: /upload & import/i }).click();
   await page.waitForSelector('text=Reference App', { timeout: 60000 });
-  check('ZIP imported from the UI', true);
+  check('ZIP imported from the UI (project card shown)', await page.getByText('Reference App').first().isVisible());
   await shot('dashboard');
 
   // open the project and build (debug only)
@@ -88,7 +88,7 @@ const { WEB, OUT, check, sha256 } = L;
     await page.getByTestId('repo-url').fill(process.env.E2E_REPO_URL);
     await page.getByRole('button', { name: /import from github/i }).click();
     await page.waitForSelector('text=reference-android', { timeout: 120000 });
-    check('repository URL imported from the UI (name taken from the folder)', true);
+    check('repository URL imported from the UI (name taken from the folder)', await page.getByText('reference-android').first().isVisible());
     await shot('repo-import');
     await page.getByText('reference-android').first().click();
     await page.waitForURL('**/projects/*', { timeout: 30000 });

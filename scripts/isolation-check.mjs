@@ -100,7 +100,7 @@ check('/tmp and /workspace are writable (needed by Gradle)', () => { assert.equa
 check('Docker socket is not exposed', () => assert.equal(out.DOCKER_SOCK, 'absent'));
 check('no secrets in the container environment', () => assert.equal(out.SECRET_ENV, '0'));
 check("another job's workspace is invisible", () => assert.equal(out.OTHER_BUILD_VISIBLE, '0'));
-check('only this job’s files are mounted', () => assert.match(out.WORKSPACE_FILES, /^(build\.gradle,gradlew,probe,|build\.gradle,gradlew,)$|gradlew/));
+check('only this job’s files are mounted', () => assert.equal(out.WORKSPACE_FILES, 'build.gradle,gradlew,probe,'));
 check('no host bind mounts besides the workspace', () => assert.equal(out.MOUNTS.replace(/,$/, '').split(',').filter((m) => m && !/^\/(sys|proc|dev)/.test(m)).length, 0, out.MOUNTS));
 check(`memory limit enforced (${SANDBOX.MEMORY_LIMIT})`, () => assert.equal(Number(out.MEMMAX), memLimit));
 check('process limit enforced', () => assert.equal(out.PIDSMAX, String(SANDBOX.PIDS_LIMIT)));

@@ -1,8 +1,8 @@
 # APK Factory V1 — démo ZIP → APK debug
 
-Périmètre V1 : un projet Android Gradle (avec wrapper) importé en ZIP est compilé avec
+Périmètre V1 : un projet Android Gradle (avec wrapper) importé en ZIP ou par URL GitHub est compilé avec
 `assembleDebug` dans un conteneur jetable, puis l'APK debug (signé avec la clé debug
-Android) est téléchargeable par son propriétaire uniquement. Release et AAB sont hors
+Android) est téléchargeable par son propriétaire uniquement (sauf s'il crée lui-même un lien de partage public valable 7 jours). Release et AAB sont hors
 périmètre (désactivés tant que `ENABLE_RELEASE_BUILDS` n'est pas `true`).
 
 ## Rejouer la démo en local

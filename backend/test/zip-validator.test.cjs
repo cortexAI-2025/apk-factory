@@ -11,7 +11,7 @@ import sys, json, zipfile
 spec = json.load(sys.stdin)
 with zipfile.ZipFile(sys.argv[1], 'w', zipfile.ZIP_DEFLATED) as z:
     for e in spec:
-        i = zipfile.ZipInfo(e['name']); i.create_system = 3
+        i = zipfile.ZipInfo(e['name']); i.create_system = e.get('system', 3)
         i.external_attr = (e.get('mode', 0o100644)) << 16
         z.writestr(i, e.get('data', 'x'))
 `;
@@ -87,6 +87,14 @@ test('rejects absolute paths', async (t) => {
 test('rejects symbolic links', async (t) => {
   const f = make(t, [...project(), { name: 'app/link', mode: 0o120777, data: '/etc/passwd' }]);
   await rejects(inspectZip(f, head(f)), /Symbolic links/);
+});
+test('rejects a symbolic link even when "version made by" claims a non-Unix host (forged header)', async (t) => {
+  const f = make(t, [...project(), { name: 'app/link', mode: 0o120777, data: '/etc/passwd', system: 0 }]);
+  await rejects(inspectZip(f, head(f)), /Symbolic links/);
+});
+test('rejects special files (device/fifo modes)', async (t) => {
+  const f = make(t, [...project(), { name: 'app/fifo', mode: 0o010644 }]);
+  await rejects(inspectZip(f, head(f)), /Special file type/);
 });
 test('rejects an archive larger than the extraction limit', async (t) => {
   const f = make(t, [...project(), { name: 'big.bin', data: 'a'.repeat(5000) }]);

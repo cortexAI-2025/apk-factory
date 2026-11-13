@@ -21,20 +21,26 @@ function whatWentWrong(lines: string[]): string[] {
   return out;
 }
 
-export function diagnoseFailure(output: string, exitCode?: number): Diagnosis {
+export function diagnoseFailure(output: string, exitCode?: number, stoppedBy?: 'timeout' | 'disk'): Diagnosis {
   const lines = output.split(/\r?\n/);
   const wrong = whatWentWrong(lines);
   const text = output;
   const ex = (a: string[]) => a.map((l) => redact(l)).slice(0, 8);
   const javac = lines.filter((l) => /\.(java|kt):\d+(:\d+)?:?\s*error:/.test(l)).slice(0, 5);
 
-  if (exitCode === 124) {
+  if (stoppedBy === 'timeout' || exitCode === 124) {
     return { code: 'TIMEOUT', summary: 'The build exceeded the time limit and was stopped.',
       hint: 'Check for an endless task or very slow dependency downloads; the limit is BUILD_TIMEOUT_MS.', excerpt: [] };
   }
-  if (exitCode === 125) {
+  if (stoppedBy === 'disk') {
     return { code: 'DISK_LIMIT', summary: 'The build exceeded its disk quota and was stopped.',
       hint: 'Remove large generated files from the project; the quota is BUILD_MAX_WORKSPACE_MB.', excerpt: [] };
+  }
+  // `docker run` itself failed (exit 125): daemon error, missing image/network — an operator problem
+  if (exitCode === 125 && /(^|\n)docker: |Unable to find image|network .* not found|Error response from daemon|invalid reference format/.test(text)) {
+    return { code: 'SANDBOX_UNAVAILABLE', summary: 'The build sandbox could not be started.',
+      hint: 'This is a server configuration problem, not your project. Check that the builder image and the build network exist (scripts/egress-proxy-up.sh) and contact the administrator.',
+      excerpt: lines.filter((l) => /docker:|Error response/.test(l)).slice(0, 3).map((l) => redact(l)) };
   }
   if (/OutOfMemoryError|Java heap space|GC overhead limit/.test(text) || exitCode === 137) {
     return { code: 'OUT_OF_MEMORY', summary: 'The build ran out of memory.',

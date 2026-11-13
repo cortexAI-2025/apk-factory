@@ -106,3 +106,18 @@ test('file:// and other protocols are refused without allowFile', async (t) => {
 test('unreachable or private repositories give a clear message', async () => {
   await assert.rejects(R.listRemoteRefs('file:///nonexistent/repo.git', {}), /not found, private, or unreachable/);
 });
+
+test('a repository larger than the limit is rejected and leaves no checkout behind', async (t) => {
+  // limits are read at import time: run the scenario in a child process with a 1 MB cap
+  const url = repo(t, { ...project(), 'big.bin': Buffer.alloc(3 * 1024 * 1024, 1).toString('latin1') });
+  const dest = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'clone-')), 'src');
+  t.after(() => fs.rmSync(path.dirname(dest), { recursive: true, force: true }));
+  const script = `
+    const R = require(${JSON.stringify(require.resolve('../dist/projects/repo-source'))});
+    R.cloneRepo(${JSON.stringify(url)}, ${JSON.stringify(dest)}, undefined, { allowFile: true })
+      .then(() => { console.log('CLONED'); process.exit(0); })
+      .catch((e) => { console.log('REJECTED:' + e.message); process.exit(0); });`;
+  const out = execFileSync(process.execPath, ['-e', script], { env: { ...process.env, ZIP_MAX_EXTRACTED_MB: '1' }, encoding: 'utf8' });
+  assert.match(out, /REJECTED:The repository is larger than 1 MB/);
+  assert.ok(!fs.existsSync(dest), 'partial checkout must be removed');
+});

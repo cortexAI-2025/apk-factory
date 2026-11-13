@@ -26,7 +26,11 @@ import { stageBuild }    from './stages/05-build';
 import { stageOutput }   from './stages/06-output';
 
 const API_BASE      = process.env.API_BASE_URL  || 'http://localhost:4000';
-const WORKER_SECRET = process.env.WORKER_SECRET || 'worker-secret';
+const WORKER_SECRET = process.env.WORKER_SECRET || '';
+if (!WORKER_SECRET) {
+  // Fail closed: the backend rejects an empty secret anyway; surface it at startup, not as silent 401s.
+  throw new Error('WORKER_SECRET is not set: the worker cannot report to the API');
+}
 
 export interface PipelineInput {
   buildId:       string;
@@ -63,7 +67,7 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
     reportFix: async (attempt, description, filesModified, errorSummary, success, patches) => {
       try {
         await apiPost(`/internal/builds/${input.buildId}/fixes`, {
-          attempt, description, filesModified, errorSummary, success, patches: patches || [],
+          attempt, description: redact(description), filesModified, errorSummary: redact(errorSummary), success, patches: patches || [],
         });
       } catch {}
     },

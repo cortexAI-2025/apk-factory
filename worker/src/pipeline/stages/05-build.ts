@@ -97,7 +97,11 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
       if (result.exitCode === 124) {
         return { ok: false, fatal: true, error: 'Build timed out' };
       }
-      if (result.exitCode === 125) {
+      if (result.stoppedBy === 'disk') {
+        return { ok: false, fatal: true, error: formatDiagnosis(diagnoseFailure(result.output, result.exitCode, 'disk')) };
+      }
+      if (result.exitCode === 125 && !result.stoppedBy) {
+        // docker run failed before/without starting the build: not fixable by the AI, not the user's fault
         return { ok: false, fatal: true, error: formatDiagnosis(diagnoseFailure(result.output, 125)) };
       }
 

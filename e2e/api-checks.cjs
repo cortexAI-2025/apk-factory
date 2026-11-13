@@ -35,7 +35,7 @@ const wrapperFiles = [
   const cases = [
     ['plain text renamed .zip', notZip, /not a valid ZIP/],
     ['no Gradle wrapper', makeZip('no-wrapper.zip', wrapperFiles.filter((e) => !e.name.startsWith('gradle'))), /wrapper is missing|Gradle wrapper/],
-    ['path traversal', makeZip('traversal.zip', [...wrapperFiles, { name: '../../evil.txt' }]), /escapes|Path/],
+    ['path traversal', makeZip('traversal.zip', [...wrapperFiles, { name: '../../evil.txt' }]), /Path escapes the extraction folder/],
     ['symbolic link', makeZip('symlink.zip', [...wrapperFiles, { name: 'app/link', mode: 0o120777, data: '/etc/passwd' }]), /Symbolic links/],
     ['compression bomb', makeZip('bomb.zip', [...wrapperFiles, { name: 'zeros.bin', data: '0', repeat: 50_000_000 }]), /compression ratio|expands to more|too large/i],
     ['not an Android project', makeZip('not-android.zip', wrapperFiles.filter((e) => !e.name.endsWith('AndroidManifest.xml'))), /AndroidManifest/],

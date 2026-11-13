@@ -126,9 +126,10 @@ export abstract class BaseDockerRuntime implements IRuntime {
         clearInterval(watchdog);
         this.activeContainers.delete(buildId);
         const durationMs = Date.now() - startMs;
-        const exitCode = timedOut ? 124 : diskExceeded ? 125 : (code ?? 1);
+        const exitCode = timedOut ? 124 : (code ?? 1);
+        const stoppedBy = timedOut ? 'timeout' : diskExceeded ? 'disk' : undefined;
         onLog(`[${this.name}] Exit code=${exitCode} duration=${(durationMs / 1000).toFixed(1)}s`, 'stdout');
-        resolve({ exitCode, success: exitCode === 0, output: lines.join(''), durationMs, runtime: this.name, containerId });
+        resolve({ exitCode, success: exitCode === 0 && !diskExceeded, output: lines.join(''), durationMs, runtime: this.name, containerId, stoppedBy });
       });
 
       proc.on('error', (err) => {
@@ -205,7 +206,8 @@ export abstract class BaseDockerRuntime implements IRuntime {
     ];
 
     if (process.env.USE_SECCOMP === 'true') {
-      args.splice(args.indexOf('--cap-drop') - 1, 0, '--security-opt', `seccomp=${SANDBOX.SECCOMP_PROFILE}`);
+      // insert the pair right before --cap-drop (never between a flag and its value)
+      args.splice(args.indexOf('--cap-drop'), 0, '--security-opt', `seccomp=${SANDBOX.SECCOMP_PROFILE}`);
     }
     return args;
   }

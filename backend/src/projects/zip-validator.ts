@@ -90,12 +90,13 @@ export async function inspectZip(
     if (name.length > 400) fail('A path in the archive is too long.');
     if (e.isEncrypted()) fail('Encrypted ZIP archives are not supported.');
 
-    // Unix mode lives in the high 16 bits of the external attributes when made on Unix
-    const madeByUnix = (e.versionMadeBy >> 8) === 3;
+    // Unix mode lives in the high 16 bits of the external attributes. Read it whatever the
+    // "version made by" host says: extractors honour the mode bits regardless of that field,
+    // and archives from other hosts simply have 0 there (type 0 = regular).
     const mode = e.externalFileAttributes >>> 16;
     const type = mode & 0o170000;
-    if (madeByUnix && type === 0o120000) fail(`Symbolic links are not allowed in archives: ${name.slice(0, 80)}`);
-    if (madeByUnix && type !== 0 && type !== 0o100000 && type !== 0o040000) {
+    if (type === 0o120000) fail(`Symbolic links are not allowed in archives: ${name.slice(0, 80)}`);
+    if (type !== 0 && type !== 0o100000 && type !== 0o040000) {
       fail(`Special file type not allowed in archive: ${name.slice(0, 80)}`);
     }
 
