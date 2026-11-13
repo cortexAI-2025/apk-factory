@@ -8,7 +8,10 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  Res,
+  ParseUUIDPipe,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { BuildsService } from './builds.service';
 import { CreateBuildDto } from './dto/create-build.dto';
@@ -59,6 +62,22 @@ export class BuildsController {
     @Query('limit', new DefaultValuePipe(500), ParseIntPipe) limit: number,
   ) {
     return this.buildsService.getLogs(userId, buildId, offset, limit);
+  }
+
+  @Get(':buildId/artifacts/:artifactId/download')
+  @ApiOperation({ summary: 'Download a build artifact (owner only)' })
+  async download(
+    @CurrentUser('id') userId: string,
+    @Param('buildId', ParseUUIDPipe) buildId: string,
+    @Param('artifactId', ParseUUIDPipe) artifactId: string,
+    @Res() res: Response,
+  ) {
+    const a = await this.buildsService.getArtifactForDownload(userId, buildId, artifactId);
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('X-Artifact-SHA256', a.sha256);
+    res.type(a.fileName.endsWith('.aab') ? 'application/octet-stream' : 'application/vnd.android.package-archive');
+    res.download(a.storagePath, a.fileName);
   }
 
   @Post(':buildId/public-link')

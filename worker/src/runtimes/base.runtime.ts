@@ -66,11 +66,16 @@ export abstract class BaseDockerRuntime implements IRuntime {
 
     onLog(`[${this.name}] Container: ${containerName}`, 'stdout');
     onLog(`[${this.name}] Image: ${SANDBOX.IMAGE}`, 'stdout');
-    onLog(`[${this.name}] Limits: CPU=${SANDBOX.CPU_LIMIT} RAM=${SANDBOX.MEMORY_LIMIT} network=${SANDBOX.NETWORK_MODE}`, 'stdout');
+    onLog(`[${this.name}] Limits: CPU=${SANDBOX.CPU_LIMIT} RAM=${SANDBOX.MEMORY_LIMIT} disk=${Math.round(SANDBOX.MAX_WORKSPACE_BYTES / 1048576)}MB network=${SANDBOX.NETWORK_MODE}`, 'stdout');
+    if (SANDBOX.NETWORK_MODE === 'bridge') {
+      onLog(`[${this.name}] WARNING: unrestricted network (BUILD_NETWORK_MODE=bridge) — use 'restricted' in production`, 'stderr');
+    }
     onLog(`[${this.name}] Security: ${this.securityLevel}`, 'stdout');
     onLog(`[${this.name}] Command: ${gradleCommand}`, 'stdout');
 
-    const args = this.buildArgs(containerName, projectPath, gradleCommand, opts);
+    const args = this.sandboxArgs(containerName, projectPath, [
+      ...gradleCommand.trim().split(/\s+/), '--no-daemon', '--stacktrace', '--console=plain',
+    ], opts);
 
     return new Promise((resolve) => {
       const proc = spawn('docker', ['run', ...args], { stdio: ['ignore', 'pipe', 'pipe'], env: process.env });
@@ -99,6 +104,16 @@ export abstract class BaseDockerRuntime implements IRuntime {
       proc.stdout.on('data', (d) => handleLine(d, 'stdout'));
       proc.stderr.on('data', (d) => handleLine(d, 'stderr'));
 
+      let diskExceeded = false;
+      const watchdog = setInterval(async () => {
+        const used = await this.dirSize(projectPath);
+        if (used > SANDBOX.MAX_WORKSPACE_BYTES && !diskExceeded) {
+          diskExceeded = true;
+          onLog(`[${this.name}] DISK LIMIT exceeded (${Math.round(used / 1048576)} MB > ${Math.round(SANDBOX.MAX_WORKSPACE_BYTES / 1048576)} MB) — killing container`, 'stderr');
+          await this.killContainer(containerName);
+        }
+      }, 5000);
+
       const timer = setTimeout(async () => {
         timedOut = true;
         onLog(`[${this.name}] TIMEOUT after ${timeoutMs / 60000}min — killing container`, 'stderr');
@@ -108,15 +123,18 @@ export abstract class BaseDockerRuntime implements IRuntime {
 
       proc.on('close', (code) => {
         clearTimeout(timer);
+        clearInterval(watchdog);
         this.activeContainers.delete(buildId);
         const durationMs = Date.now() - startMs;
         const exitCode = timedOut ? 124 : (code ?? 1);
+        const stoppedBy = timedOut ? 'timeout' : diskExceeded ? 'disk' : undefined;
         onLog(`[${this.name}] Exit code=${exitCode} duration=${(durationMs / 1000).toFixed(1)}s`, 'stdout');
-        resolve({ exitCode, success: exitCode === 0, output: lines.join(''), durationMs, runtime: this.name, containerId });
+        resolve({ exitCode, success: exitCode === 0 && !diskExceeded, output: lines.join(''), durationMs, runtime: this.name, containerId, stoppedBy });
       });
 
       proc.on('error', (err) => {
         clearTimeout(timer);
+        clearInterval(watchdog);
         this.activeContainers.delete(buildId);
         onLog(`[${this.name}] Docker error: ${err.message}`, 'stderr');
         resolve({ exitCode: 1, success: false, output: err.message, durationMs: Date.now() - startMs, runtime: this.name });
@@ -132,52 +150,85 @@ export abstract class BaseDockerRuntime implements IRuntime {
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
-  private buildArgs(
+  /**
+   * Full `docker run` argument list for a sandboxed command. Public so the
+   * isolation checks (scripts/isolation-check.mjs) exercise the exact flags
+   * used for real builds.
+   */
+  sandboxArgs(
     containerName: string,
     projectPath: string,
-    gradleCommand: string,
-    opts: ContainerRunOptions,
+    command: string[],
+    opts: Pick<ContainerRunOptions, 'extraVolumes' | 'extraEnv'> = {},
   ): string[] {
-    // When running via Docker socket (DinD), the worker's internal mount paths
-    // are NOT visible to the Docker daemon host.  We therefore do NOT mount
-    // android_sdk or gradle_cache here — those are already baked into the
-    // android-builder image at /opt/android-sdk and /opt/gradle-home.
-    // The entrypoint.sh copies the Gradle wrapper zip to /tmp/gradle-home so
-    // it stays writable even though the root filesystem is read-only.
+    // Docker-in-Docker note: the worker's own mount paths are not visible to the
+    // daemon, so SDK and Gradle distributions come from the builder image and
+    // only the workspace (identical host path) is bind-mounted.
+    const restricted = SANDBOX.NETWORK_MODE === 'restricted';
+    const proxy = restricted ? new URL(SANDBOX.PROXY_URL) : null;
+
     const args: string[] = [
       '--rm', '--name', containerName,
+      '--label', 'apk-factory.sandbox=1',
       ...this.runtimeFlags(),
+      // ── resources ──
       '--memory', SANDBOX.MEMORY_LIMIT,
       '--memory-swap', SANDBOX.MEMORY_LIMIT,
       '--cpus', SANDBOX.CPU_LIMIT,
       '--pids-limit', String(SANDBOX.PIDS_LIMIT),
       '--ulimit', `nofile=${SANDBOX.NOFILE_LIMIT}:${SANDBOX.NOFILE_LIMIT}`,
       '--ulimit', `nproc=${SANDBOX.NPROC_LIMIT}:${SANDBOX.NPROC_LIMIT}`,
-      '--network', SANDBOX.NETWORK_MODE,
+      '--ulimit', `fsize=${SANDBOX.MAX_FILE_BYTES}:${SANDBOX.MAX_FILE_BYTES}`,
+      // ── network ──
+      '--network', restricted ? SANDBOX.NETWORK_NAME : SANDBOX.NETWORK_MODE,
+      // ── privileges ──
+      '--user', '1000:1000',
       '--security-opt', 'no-new-privileges:true',
       '--cap-drop', 'ALL',
       '--read-only',
-      // /tmp holds Gradle home copy, Maven local cache, dex temp files — needs exec
-      '--tmpfs', '/tmp:size=2g,exec',
-      '--volume', `${projectPath}:/workspace:rw,z`,
+      '--init',
+      // /tmp holds the Gradle home, Android user home and dex temp files — needs exec
+      '--tmpfs', '/tmp:size=2g,exec,mode=1777',
+      '--volume', `${projectPath}:/workspace:rw`,
       ...(opts.extraVolumes || []),
+      // ── environment: explicit allow-list, never the worker's own env ──
       '--env', 'ANDROID_HOME=/opt/android-sdk',
       '--env', 'ANDROID_SDK_ROOT=/opt/android-sdk',
+      '--env', 'HOME=/tmp/home',
+      '--env', 'ANDROID_USER_HOME=/tmp/android',
       '--env', 'GRADLE_OPTS=-Dorg.gradle.daemon=false -Xmx2048m -Dfile.encoding=UTF-8',
       '--env', 'TERM=dumb', '--env', 'CI=true',
+      ...(proxy ? ['--env', `BUILD_PROXY_HOST=${proxy.hostname}`, '--env', `BUILD_PROXY_PORT=${proxy.port || '3128'}`] : []),
       ...(opts.extraEnv || []),
       '--workdir', '/workspace',
-      '--user', 'builder',
       SANDBOX.IMAGE,
-      ...gradleCommand.trim().split(/\s+/),
-      '--no-daemon', '--stacktrace', '--console=plain',
+      ...command,
     ];
 
     if (process.env.USE_SECCOMP === 'true') {
-      args.splice(args.indexOf('--cap-drop') - 1, 0, '--security-opt', `seccomp=${SANDBOX.SECCOMP_PROFILE}`);
+      // insert the pair right before --cap-drop (never between a flag and its value)
+      args.splice(args.indexOf('--cap-drop'), 0, '--security-opt', `seccomp=${SANDBOX.SECCOMP_PROFILE}`);
     }
-
     return args;
+  }
+
+  /** Total bytes under a directory (regular files only, no symlink following). */
+  private async dirSize(dir: string): Promise<number> {
+    let total = 0;
+    const stack = [dir];
+    while (stack.length) {
+      const d = stack.pop()!;
+      let entries;
+      try { entries = await fs.readdir(d, { withFileTypes: true }); } catch { continue; }
+      for (const e of entries) {
+        const full = path.join(d, e.name);
+        if (e.isDirectory()) stack.push(full);
+        else if (e.isFile()) {
+          try { total += (await fs.lstat(full)).size; } catch {}
+        }
+      }
+    }
+    return total;
   }
 
   private async killContainer(name: string): Promise<void> {

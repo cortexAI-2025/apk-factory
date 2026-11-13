@@ -11,6 +11,7 @@ import {
   Query,
   ParseIntPipe,
   DefaultValuePipe,
+  BadRequestException,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
@@ -33,10 +34,10 @@ export class ProjectsController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: memoryStorage(),
-      limits: { fileSize: 500 * 1024 * 1024 }, // 500MB
+      limits: { fileSize: parseInt(process.env.ZIP_MAX_UPLOAD_MB || '200', 10) * 1024 * 1024, files: 1 },
       fileFilter: (_, file, cb) => {
         if (!file.originalname.match(/\.(zip)$/i)) {
-          return cb(new Error('Only ZIP files are allowed'), false);
+          return cb(new BadRequestException('Only .zip files are allowed'), false);
         }
         cb(null, true);
       },

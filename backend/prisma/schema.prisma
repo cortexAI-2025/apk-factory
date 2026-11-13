@@ -131,8 +131,28 @@ model Build {
 
   logs             BuildLog[]
   fixes            BuildFix[]
+  artifacts        BuildArtifact[]
 
   @@map("builds")
+}
+
+/// An installable file produced by a build (V1: debug APKs). Served only to the build owner.
+model BuildArtifact {
+  id          String   @id @default(uuid())
+  fileName    String
+  variant     String   @default("debug")
+  abi         String   @default("universal")
+  module      String   @default("")
+  sizeBytes   Int
+  sha256      String
+  recommended Boolean  @default(false)
+  storagePath String
+  createdAt   DateTime @default(now())
+  buildId     String
+  build       Build    @relation(fields: [buildId], references: [id], onDelete: Cascade)
+
+  @@index([buildId])
+  @@map("build_artifacts")
 }
 
 model BuildLog {

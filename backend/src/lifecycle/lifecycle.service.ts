@@ -44,7 +44,7 @@ export class LifecycleService implements OnModuleInit, OnModuleDestroy {
     const cutoff = new Date(now.getTime() - this.retentionMs);
 
     const builds = await this.prisma.build.findMany({
-      where: { apkUrl: { not: null }, finishedAt: { lt: cutoff } },
+      where: { OR: [{ apkUrl: { not: null } }, { artifacts: { some: {} } }], finishedAt: { lt: cutoff } },
       select: { id: true },
     });
     for (const b of builds) await this.purgeBuildArtifacts(b.id);
@@ -74,6 +74,8 @@ export class LifecycleService implements OnModuleInit, OnModuleDestroy {
 
   /** Delete the APK/AAB + QR files of a build and clear the links in the DB. */
   async purgeBuildArtifacts(buildId: string): Promise<void> {
+    await this.storage.deleteDir(this.storage.getArtifactDir(buildId));
+    await this.prisma.buildArtifact.deleteMany({ where: { buildId } }).catch(() => {});
     await this.storage.deleteFile(this.storage.getApkPath(buildId, '.apk'));
     await this.storage.deleteFile(this.storage.getApkPath(buildId, '.aab'));
     await this.storage.deleteFile(path.join(this.storage.uploadsPath, 'qr', `${buildId}.png`));

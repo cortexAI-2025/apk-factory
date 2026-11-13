@@ -19,6 +19,7 @@ import { MavenCacheInjector } from '../../maven/cache-injector';
 import { LogParser } from '../../log-parser';
 import { AiFixer } from '../../ai-fixer';
 import { STAGE_TIMEOUTS } from '../../security/sandbox-config';
+import { diagnoseFailure, formatDiagnosis } from '../../diagnose';
 
 const parser  = new LogParser();
 const fixer   = new AiFixer();
@@ -96,6 +97,13 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
       if (result.exitCode === 124) {
         return { ok: false, fatal: true, error: 'Build timed out' };
       }
+      if (result.stoppedBy === 'disk') {
+        return { ok: false, fatal: true, error: formatDiagnosis(diagnoseFailure(result.output, result.exitCode, 'disk')) };
+      }
+      if (result.exitCode === 125 && !result.stoppedBy) {
+        // docker run failed before/without starting the build: not fixable by the AI, not the user's fault
+        return { ok: false, fatal: true, error: formatDiagnosis(diagnoseFailure(result.output, 125)) };
+      }
 
       ctx.buildDurationMs = (ctx.buildDurationMs || 0) + result.durationMs;
       await ctx.log('error', `BUILD FAILED (exit=${result.exitCode})`);
@@ -104,20 +112,14 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
       if (!ctx.autoFix || attempt >= MAX_FIX_ATTEMPTS) {
         ctx.autoFixAttempts = attempt;
         ctx.buildOutput = result.output;
-        const errors = parser.parseErrors(result.output);
-        return {
-          ok: false,
-          error: errors.length > 0
-            ? errors.map((e) => `[${e.type}] ${e.message}`).join('\n')
-            : 'Build failed — see logs for details',
-        };
+        return { ok: false, error: formatDiagnosis(diagnoseFailure(result.output, result.exitCode)) };
       }
 
       // ── Parse errors & fix ────────────────────────────────────────────
       const errors = parser.parseErrors(result.output);
       if (errors.length === 0) {
         ctx.autoFixAttempts = attempt;
-        return { ok: false, error: 'Build failed with unrecognized errors — cannot auto-fix' };
+        return { ok: false, error: formatDiagnosis(diagnoseFailure(result.output, result.exitCode)) };
       }
 
       await ctx.log('info', `Detected ${errors.length} error(s):`);
@@ -140,7 +142,7 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
 
       if (!fixResult.success || fixResult.filesModified.length === 0) {
         ctx.autoFixAttempts = attempt;
-        return { ok: false, error: fixResult.errorSummary || 'AI fix did not produce patches' };
+        return { ok: false, error: formatDiagnosis(diagnoseFailure(result.output, result.exitCode)) };
       }
 
       await ctx.log('info', `Fix applied: ${fixResult.description}`);

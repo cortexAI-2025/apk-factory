@@ -16,6 +16,8 @@ export interface ContainerRunResult {
   durationMs:  number;
   runtime:     string;
   containerId?: string;
+  /** Set when the worker itself stopped the container (never inferred from the exit code). */
+  stoppedBy?: 'timeout' | 'disk';
 }
 
 export interface RuntimeInfo {

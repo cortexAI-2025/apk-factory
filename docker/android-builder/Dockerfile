@@ -59,18 +59,10 @@ RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true \
         "build-tools;30.0.3" \
     && chmod -R o+rX ${ANDROID_HOME}
 
-# ── Pre-seed common Gradle wrapper distributions ─────────────────────────────
-#    Downloaded here so containers with --network=none can use them
+# The Gradle distribution requested by the project's wrapper is downloaded at build
+# time through the egress proxy (services.gradle.org is on the allow-list).
 ENV GRADLE_USER_HOME=/opt/gradle-home
-RUN mkdir -p ${GRADLE_USER_HOME}/wrapper/dists
-
-RUN for VERSION in 8.4 8.3 8.2.1 8.1.1 8.0 7.6.4 7.5.1 7.4.2 7.3.3 6.9.4; do \
-        DIST_DIR="${GRADLE_USER_HOME}/wrapper/dists/gradle-${VERSION}-bin"; \
-        mkdir -p "${DIST_DIR}" \
-        && wget -q \
-            "https://services.gradle.org/distributions/gradle-${VERSION}-bin.zip" \
-            -O "${DIST_DIR}/gradle-${VERSION}-bin.zip" || true; \
-    done
+RUN mkdir -p ${GRADLE_USER_HOME}
 
 # ── Non-root user ─────────────────────────────────────────────────────────────
 RUN groupadd -g 1000 builder \

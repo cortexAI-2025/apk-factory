@@ -1,0 +1,13 @@
+# Exact hosts a Gradle/AGP build legitimately needs (no overlapping wildcards: squid rejects them).
+dl.google.com
+maven.google.com
+repo.maven.apache.org
+repo1.maven.org
+plugins.gradle.org
+plugins-artifacts.gradle.org
+services.gradle.org
+downloads.gradle.org
+jitpack.io
+github.com
+objects.githubusercontent.com
+release-assets.githubusercontent.com
