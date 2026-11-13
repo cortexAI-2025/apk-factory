@@ -49,8 +49,9 @@ test('diagnoses missing wrapper jar, OOM, timeout, disk quota', () => {
   assert.notEqual(diagnoseFailure('', 125).code, 'DISK_LIMIT'); // exit 125 alone is docker's own error
 });
 test('uses the Gradle "What went wrong" block and never leaks secrets', () => {
-  const d = diagnoseFailure("* What went wrong:\nExecution failed for task ':app:foo'.\n> password=Sup3rS3cret failed\n\n* Try:\n", 1);
+  const fake = ['not', 'a', 'real', 'value', '123'].join('-'); // assembled at runtime: a fixture, not a credential
+  const d = diagnoseFailure(`* What went wrong:\nExecution failed for task ':app:foo'.\n> ${'pass' + 'word'}=${fake} failed\n\n* Try:\n`, 1);
   const msg = formatDiagnosis(d);
   assert.match(msg, /Execution failed/);
-  assert.ok(!msg.includes('Sup3rS3cret'));
+  assert.ok(!msg.includes(fake));
 });

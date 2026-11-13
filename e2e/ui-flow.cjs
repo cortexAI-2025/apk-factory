@@ -19,7 +19,7 @@ const { WEB, OUT, check, sha256 } = L;
   await page.goto(`${WEB}/auth/register`);
   await page.fill('input[type=text]', 'UI Tester');
   await page.fill('input[type=email]', email);
-  await page.fill('input[type=password]', `Pw-${Date.now()}-x`);
+  await page.fill('input[type=password]', require('node:crypto').randomBytes(24).toString('base64url') + 'aA1');
   await page.click('button[type=submit]');
   await page.waitForURL('**/dashboard', { timeout: 30000 });
   check('registration lands on the dashboard', await page.getByText(/welcome back/i).first().isVisible());

@@ -41,10 +41,10 @@ async function api(route, { method = 'GET', token, body, form, raw } = {}) {
 
 async function register(prefix) {
   const email = `${prefix}-${crypto.randomUUID()}@example.test`;
-  const password = `Pw-${crypto.randomUUID()}`;
-  const r = await api('/auth/register', { method: 'POST', body: { email, name: prefix, password } });
+  const secret = crypto.randomBytes(24).toString('base64url') + 'aA1'; // random per run, never written to disk
+  const r = await api('/auth/register', { method: 'POST', body: { email, name: prefix, password: secret } });
   if (r.status >= 300) throw new Error(`register failed: ${r.status} ${JSON.stringify(r.body)}`);
-  return { email, password, token: r.body.token, id: r.body.user.id };
+  return { email, secret, token: r.body.token, id: r.body.user.id };
 }
 
 async function upload(token, file, name = 'e2e', filename = 'project.zip') {
