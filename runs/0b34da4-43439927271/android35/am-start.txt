@@ -1,0 +1,7 @@
+Starting: Intent { cmp=com.apkfactory.reference/.MainActivity }
+Status: ok
+LaunchState: COLD
+Activity: com.apkfactory.reference/.MainActivity
+TotalTime: 1388
+WaitTime: 1391
+Complete
