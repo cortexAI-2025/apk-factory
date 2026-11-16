@@ -9,11 +9,13 @@ import { PipelineContext, StageResult } from '../types';
 import { createHash } from 'crypto';
 import { createReadStream } from 'fs';
 import { findBuildArtifact, listBuildArtifacts } from '../artifacts';
+import { verifyApk } from '../../security/verify-apk';
 import { SANDBOX } from '../../security/sandbox-config';
 
 export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', '─── Stage 6/6: OUTPUT ──────────────────────────────');
 
+  if (!['DEBUG', 'RELEASE'].includes(ctx.buildType)) return { ok: false, fatal: true, error: 'APK Factory produces APK files only' };
   if (ctx.buildType === 'DEBUG') return stageOutputDebug(ctx);
 
   // Select the output for this build type; fail rather than upload a different variant.
@@ -39,10 +41,14 @@ export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
   }
 
   if (apkSize > SANDBOX.APK_MAX_SIZE_BYTES) {
-    await ctx.log('warn', `APK is large: ${(apkSize / 1024 / 1024).toFixed(1)}MB`);
+    return { ok: false, fatal: true, error: 'APK exceeds the artifact size limit' };
   }
 
   await ctx.log('info', `APK size: ${(apkSize / 1024 / 1024).toFixed(2)} MB`);
+
+  try { await verifyApk(apkPath); } catch {
+    return { ok: false, fatal: true, error: 'APK signature verification failed or apksigner unavailable' };
+  }
 
   // ── 3. Upload artifact via API ───────────────────────────────────────────
   await ctx.log('info', `Uploading APK...`);
@@ -77,6 +83,11 @@ async function stageOutputDebug(ctx: PipelineContext): Promise<StageResult> {
     return { ok: false, fatal: true, error: 'DEBUG artifact not found after successful build' };
   }
   await ctx.log('info', `Found ${artifacts.length} debug APK(s):`);
+
+  // Verify the whole set before uploading any member.
+  try { for (const a of artifacts) await verifyApk(a.file); } catch {
+    return { ok: false, fatal: true, error: 'APK signature verification failed or apksigner unavailable' };
+  }
 
   let recommendedUrl: string | undefined;
   let recommendedSize = 0;

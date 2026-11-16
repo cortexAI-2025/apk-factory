@@ -1,0 +1,58 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> apk-factory-worker@1.0.0 test
+> npm run build && node --test tests/*.test.cjs
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> apk-factory-worker@1.0.0 build
+> tsc
+
+✔ DEBUG selects its own output when all variants exist (21.227591ms)
+✔ RELEASE selects its own output when all variants exist (7.910627ms)
+✔ AAB selects its own output when all variants exist (4.243077ms)
+✔ does not substitute a debug APK or a source AAB for a missing release bundle (3.963481ms)
+✔ supports a custom module and flavored release output (8.779071ms)
+✔ refuses ambiguous outputs rather than delivering an arbitrary module or split (4.141637ms)
+✔ ignores symlink artifacts and dependencies (4.603614ms)
+✔ output stage rejects AAB before upload (0.410441ms)
+✔ output stage fails without uploading when the requested artifact is missing (1.960839ms)
+✔ debug: single APK is recommended (4.292866ms)
+✔ debug: flavors and ABI splits are all listed, universal app build recommended first (5.881206ms)
+✔ debug: arm64-v8a is preferred over armeabi-v7a (Galaxy A-series are arm64) (2.602895ms)
+✔ debug: test APKs, release APKs and symlinks are never offered (3.345171ms)
+✔ output stage uploads every debug variant with sha256 and metadata (20.148649ms)
+✔ redacts tokens, credentials in URLs and key=value secrets (1.357081ms)
+✔ hides host paths (0.230833ms)
+✔ leaves ordinary build output untouched (0.197544ms)
+✔ diagnoses a blocked download host with an actionable hint (0.968822ms)
+✔ diagnoses a compilation error with file and line (0.568236ms)
+✔ diagnoses missing wrapper jar, OOM, timeout, disk quota (0.453876ms)
+✔ uses the Gradle "What went wrong" block and never leaks secrets (0.255821ms)
+✔ network defaults to the restricted mode, never to open internet (1.254558ms)
+✔ sandbox drops privileges and mounts only the workspace (1.092737ms)
+✔ environment is an explicit allow-list without secrets (0.398022ms)
+✔ USE_SECCOMP inserts a well-formed --security-opt pair (flag followed by its value) (0.358494ms)
+✔ disk quota and timeout are decided by the worker, not inferred from exit codes (0.727283ms)
+✔ docker run failing with exit 125 is reported as a sandbox problem, not a disk quota (1.164574ms)
+✔ a standard Gradle wrapper project is not blocked (wrapper jar, gradlew.bat) (13.893094ms)
+✔ bundled libraries and helper scripts only warn (4.152592ms)
+[2026-11-16T11:16:35.794Z] [33mwarn[39m: Security scan found 1 threat(s) {"critical":0,"high":1}
+✔ Windows executables are still blocked (5.022949ms)
+[2026-11-16T11:16:35.799Z] [33mwarn[39m: Security scan found 2 threat(s) {"critical":1,"high":0}
+✔ shell execution in source is still blocked (4.753938ms)
+✔ missing verifier, invalid signature and symlink all block delivery (19.997373ms)
+✔ directory source is copied under the host-visible workspace; AI edits leave originals intact (15.674537ms)
+✔ concurrent builds and retries of the same source have distinct workspaces (8.193239ms)
+✔ old artifacts in custom modules, caches, and Git history are excluded (11.615664ms)
+✔ nested GitHub project roots are resolved after copying (4.619838ms)
+✔ symlinks escaping the source fail before compilation and remove partial workspace (3.294696ms)
+✔ successful artifact upload removes the complete workspace, preserving source (12.160355ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 213.818706

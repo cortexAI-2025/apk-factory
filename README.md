@@ -1,3 +1,5 @@
+> **État vérifié au 16/11/2026 : NO-GO production.** Voir [audit, preuves et procédure actuelle](docs/audit-20261116/AUDIT.md). Les annonces et exemples historiques ci-dessous ne constituent pas une preuve de fonctionnement et sont remplacés par cette procédure lorsqu’ils divergent. Aucun APK/AAB réel compilé pendant cet audit.
+
 # APK Factory
 
 > **ZIP / GitHub / AI → APK in 1 click**

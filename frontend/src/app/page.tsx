@@ -218,7 +218,7 @@ export default function LandingPage() {
               name: 'Pro',
               price: '$19',
               period: 'per month',
-              features: ['Unlimited builds', 'Debug + Release + AAB', 'AI AutoFix (advanced)', '2GB project size', 'Priority queue', 'Custom keystore', 'Priority support'],
+              features: ['Unlimited builds', 'Debug + Release APK', 'AI AutoFix (advanced)', '2GB project size', 'Priority queue', 'Custom keystore', 'Priority support'],
               cta: 'Start Pro Trial',
               href: '/auth/register?plan=pro',
               highlight: true,

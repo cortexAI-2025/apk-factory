@@ -88,6 +88,12 @@ test('successful artifact upload removes the complete workspace, preserving sour
     assert.equal(await fs.readFile(file, 'utf8'), 'new artifact');
     return { apkUrl: 'http://example.test/new.apk' };
   };
+  // Simulates the verifier for this workspace lifecycle test only.
+  const verifier = path.join(root, 'mock-apksigner');
+  await fs.writeFile(verifier, '#!/bin/sh\nexit 0\n', {mode:0o700});
+  const previous = process.env.APKSIGNER_PATH;
+  process.env.APKSIGNER_PATH = verifier;
+  t.after(() => { if(previous === undefined) delete process.env.APKSIGNER_PATH; else process.env.APKSIGNER_PATH=previous; });
   assert.equal((await stageOutput(ctx)).ok, true);
   await assert.rejects(fs.access(ctx.workspaceDir), { code: 'ENOENT' });
   await fs.access(path.join(root, 'build.gradle'));

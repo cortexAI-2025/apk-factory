@@ -120,7 +120,7 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
     { name: 'OUTPUTTING',  fn: () => stageOutput(ctx) },
   ];
 
-  if (input.buildType !== 'DEBUG' && !SANDBOX.ALLOW_RELEASE_BUILDS) {
+  if (!['DEBUG', 'RELEASE'].includes(input.buildType) || (input.buildType !== 'DEBUG' && !SANDBOX.ALLOW_RELEASE_BUILDS)) {
     await ctx.updateStatus('FAILED', { errorMessage: 'Only debug APK builds are supported in this version.' });
     return;
   }
