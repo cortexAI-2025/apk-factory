@@ -1,0 +1,52 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> apk-factory-backend@1.0.0 test
+> npm run build && node --test test/*.test.cjs
+
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> apk-factory-backend@1.0.0 build
+> nest build
+
+✔ DTO permits APK debug/release and always refuses AAB (3.191762ms)
+✔ release flag cannot bypass APK-only policy or enqueue an AAB (1.98142ms)
+✔ accepts repo, .git, trailing slash and www host (2.098905ms)
+✔ parses /tree/<branch>/<folder> (0.425023ms)
+✔ accepts GitHub archive and codeload ZIP links (0.211695ms)
+✔ rejects other hosts, schemes, credentials, ports and odd paths (0.910035ms)
+✔ splitTreePath picks the longest matching ref (branches containing "/") (0.548386ms)
+✔ clone removes .git and finds a project at the repository root (63.939737ms)
+✔ finds a project inside one folder (monorepo) (52.928204ms)
+✔ several Android projects → asks for the folder URL (45.930666ms)
+✔ explicit sub-folder disambiguates (40.482446ms)
+✔ missing wrapper and non-gradle repositories give distinct messages (91.825561ms)
+✔ repositories containing symbolic links are refused (46.561626ms)
+✔ file:// and other protocols are refused without allowFile (15.546564ms)
+✔ unreachable or private repositories give a clear message (6.359407ms)
+✔ a repository larger than the limit is rejected and leaves no checkout behind (479.17687ms)
+✔ accepts a project at the archive root (66.63149ms)
+✔ accepts a project inside a single parent folder (GitHub style) (47.510439ms)
+✔ accepts a monorepo ZIP: repository folder + android sub-folder (46.048652ms)
+✔ does not look deeper than three folders (40.15543ms)
+✔ ignores __MACOSX metadata (38.415639ms)
+✔ rejects a file that is not a ZIP (0.770637ms)
+✔ rejects a truncated/corrupted ZIP (33.644226ms)
+✔ rejects a missing Gradle wrapper with an actionable message (33.326388ms)
+✔ rejects an archive without any Gradle build file (32.764376ms)
+✔ rejects a Gradle project that is not Android (30.403102ms)
+✔ rejects path traversal (40.910588ms)
+✔ rejects absolute paths (42.29887ms)
+✔ rejects symbolic links (32.687222ms)
+✔ rejects a symbolic link even when "version made by" claims a non-Unix host (forged header) (31.904085ms)
+✔ rejects special files (device/fifo modes) (67.11239ms)
+✔ rejects an archive larger than the extraction limit (105.27297ms)
+✔ rejects too many entries (85.123213ms)
+✔ rejects an ambiguous archive with two projects (35.257789ms)
+ℹ tests 34
+ℹ suites 0
+ℹ pass 34
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1058.803748

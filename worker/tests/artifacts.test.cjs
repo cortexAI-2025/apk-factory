@@ -50,21 +50,10 @@ test('ignores symlink artifacts and dependencies', async t => {
   assert.equal(await findBuildArtifact(root, 'RELEASE'), null);
 });
 
-test('output stage uploads the AAB and records its URL and size', async t => {
-  const root = await workspace(t, [debug, bundle]);
-  let uploaded;
-  const ctx = {
-    projectRoot: root, buildType: 'AAB', workspaceDir: root, sourceRepoPath: root,
-    log: async () => {},
-    uploadApk: async file => {
-      uploaded = file;
-      return { apkUrl: 'https://example.test/build.aab' };
-    },
-  };
-  assert.deepEqual(await stageOutput(ctx), { ok: true });
-  assert.equal(uploaded, path.join(root, bundle));
-  assert.equal(ctx.apkUrl, 'https://example.test/build.aab');
-  assert.equal(ctx.apkSize, Buffer.byteLength('test artifact'));
+test('output stage rejects AAB before upload', async () => {
+  const result = await stageOutput({ buildType: 'AAB', log: async () => {}, uploadApk: async () => assert.fail('must not upload') });
+  assert.equal(result.ok, false);
+  assert.match(result.error, /APK files only/);
 });
 
 test('output stage fails without uploading when the requested artifact is missing', async t => {
@@ -74,7 +63,7 @@ test('output stage fails without uploading when the requested artifact is missin
     uploadApk: async () => assert.fail('must not upload'),
   });
   assert.equal(result.ok, false);
-  assert.match(result.error, /AAB artifact not found/);
+  assert.match(result.error, /APK files only/);
 });
 
 const { listBuildArtifacts } = require('../dist/pipeline/artifacts');
@@ -127,6 +116,12 @@ test('output stage uploads every debug variant with sha256 and metadata', async 
     projectRoot: root, buildType: 'DEBUG', workspaceDir: root, sourceRepoPath: root, log: async () => {},
     uploadApk: async (file, meta) => { uploads.push(meta); return { apkUrl: `https://example.test/${meta.fileName}` }; },
   };
+  // Simulated trusted verifier for output/cleanup unit tests; not a real APK proof.
+  const verifier = path.join(root, 'mock-apksigner');
+  await fs.writeFile(verifier, '#!/bin/sh\nexit 0\n', {mode: 0o700});
+  const previous = process.env.APKSIGNER_PATH;
+  process.env.APKSIGNER_PATH = verifier;
+  t.after(() => { if (previous === undefined) delete process.env.APKSIGNER_PATH; else process.env.APKSIGNER_PATH = previous; });
   assert.deepEqual(await stageOutput(ctx), { ok: true });
   assert.equal(uploads.length, 2);
   assert.ok(uploads.every(m => /^[a-f0-9]{64}$/.test(m.sha256)));

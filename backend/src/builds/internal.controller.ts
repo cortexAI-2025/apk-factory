@@ -196,9 +196,9 @@ export class InternalBuildsController {
       throw new ConflictException('Build is not accepting artifacts');
     }
 
-    const allowRelease = this.config.get('ENABLE_RELEASE_BUILDS') === 'true';
-    const m = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(apk|aab)$/.exec(q.fileName || '');
-    if (!m || (m[1] === 'aab' && !allowRelease)) throw new BadRequestException('Invalid artifact file name');
+
+    const m = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(apk)$/.exec(q.fileName || '');
+    if (!m) throw new BadRequestException('Invalid artifact file name');
     const variant = /^[A-Za-z0-9_-]{1,60}$/.test(q.variant || '') ? q.variant : 'debug';
     const abi = ['universal', 'arm64-v8a', 'armeabi-v7a', 'x86_64', 'x86'].includes(q.abi) ? q.abi : 'universal';
     const moduleName = /^[A-Za-z0-9_./-]{0,80}$/.test(q.module || '') ? q.module || '' : '';

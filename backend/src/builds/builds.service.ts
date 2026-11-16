@@ -49,6 +49,9 @@ export class BuildsService {
     }
 
     // V1 scope: debug APKs only (release signing and AAB are out of scope)
+    if (dto.buildType === BuildType.AAB) {
+      throw new BadRequestException('APK Factory produces APK files only.');
+    }
     if (dto.buildType !== BuildType.DEBUG && process.env.ENABLE_RELEASE_BUILDS !== 'true') {
       throw new BadRequestException('Only debug APK builds are supported in this version.');
     }

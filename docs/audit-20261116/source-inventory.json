@@ -1,0 +1,15 @@
+{
+  "date": "2026-11-16",
+  "default_ref": "refs/remotes/origin/claude/apk-factory-saas-ZByvQ",
+  "working_base_sha": "df866383cd77a1734e3ef4444bab8329c14c54c8",
+  "branches": [
+    "origin 62186a33945d3d9fa45015790e22eafd37ad93d0 2026-10-23 14:28:16 +0200 Merge pull request #4 from cortexAI-2025/codex/android-build-smoke",
+    "origin/ci-evidence 710974b230bf8761a2dc3ef999367eef3ba774ff 2026-11-13 14:18:25 +0000 CI evidence for df86638 (run 43439918191)",
+    "origin/claude/apk-factory-saas-ZByvQ 62186a33945d3d9fa45015790e22eafd37ad93d0 2026-10-23 14:28:16 +0200 Merge pull request #4 from cortexAI-2025/codex/android-build-smoke",
+    "origin/claude/v1-zip-to-debug-apk df866383cd77a1734e3ef4444bab8329c14c54c8 2026-11-13 14:08:22 +0000 test: avoid password-looking literals in fixtures (GitGuardian false positives)",
+    "origin/codex/android-build-smoke 20af98ff7eb02eac9b04389b8265ecf8e9edfd79 2026-10-23 14:26:51 +0200 fix: prepare isolated host-visible Android build workspaces",
+    "origin/codex/fix-build-artifact-selection 4f9e383d193c74bfe248af61526b293d3e7949b2 2026-10-22 19:00:08 +0200 fix: deliver artifacts matching the requested Android build type",
+    "origin/fix-apk-upload-api-8893980874187196724 ff8dfd894a2d05c0a34c3c9ff6b3346b63c84d56 2026-04-15 00:11:10 +0000 feat: upload APK to backend via API stream",
+    "origin/fix/download-apk-controller-10032404381964668788 4325a5e646a1973bbe339c3f26dc68857308f2f8 2026-04-15 00:54:56 +0000 feat: Add support for AAB and APK downloads"
+  ]
+}
