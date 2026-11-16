@@ -1,0 +1,43 @@
+✓ invalid ZIP rejected: plain text renamed .zip
+✓ invalid ZIP rejected: no Gradle wrapper
+✓ invalid ZIP rejected: path traversal
+✓ invalid ZIP rejected: symbolic link
+✓ invalid ZIP rejected: compression bomb
+✓ invalid ZIP rejected: not an Android project
+✓ upload without a file is rejected (400)
+✓ non-.zip file name is rejected (400)
+✓ no project was created by any rejected archive
+✓ repo URL rejected: non-GitHub host
+✓ repo URL rejected: plain http
+✓ repo URL rejected: credentials in URL
+✓ repo URL rejected: shell metacharacters
+✓ repo URL rejected: unsupported GitHub page
+✓ repo URL rejected: nonexistent repository
+✓ repo URL rejected: repository without Gradle project
+✓ rejected URL imports left no project behind
+✓ repo URL import (branch + folder) succeeds
+✓ imported project is named after the folder and keeps its source URL
+✓ GitHub ZIP link of the whole repository imports the Android sub-project
+✓ broken project is accepted for build
+✓ compile error ends in FAILED
+✓ error message names the cause, file and line
+✓ error message does not expose host paths
+✓ build logs contain no host paths or configured secrets
+✓ failed build exposes no artifact
+✓ build lists at least one artifact with name, size and SHA-256
+✓ owner can download the APK
+✓ downloaded bytes match the displayed SHA-256
+✓ download is served as an APK attachment, not cacheable
+✓ second account cannot download the artifact
+✓ anonymous request is refused (401)
+✓ second account cannot read the build details
+✓ second account cannot read the build logs
+✓ no static exposure of /files/artifacts/<id>/<id>.apk
+✓ no static exposure of /files/apks/<id>.apk
+✓ no static exposure of /files/projects/<id>/source/gradlew
+✓ no static exposure of /files/keystores/
+✓ internal worker endpoint refuses a wrong secret
+✓ internal worker endpoint refuses a missing secret
+✓ V1 scope: release builds are refused
+
+41/41 checks passed (api)
