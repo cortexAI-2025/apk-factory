@@ -1,3 +1,5 @@
+import { Framework, PackageManager, FrameworkVersions, BuildSystemInfo } from '../detection/types';
+
 export type PipelineStage =
   | 'EXTRACTING'
   | 'DETECTING'
@@ -26,11 +28,22 @@ export interface PipelineContext {
   gradleCommand: string;
 
   // Detection results
+  // Legacy, Prisma-backed coarse type — derived from `framework` via mapFrameworkToProjectType().
   projectType?: 'ANDROID_NATIVE' | 'FLUTTER' | 'REACT_NATIVE' | 'UNKNOWN';
   gradleVersion?: string;
   sdkVersion?: number;
   kotlinVersion?: string;
   hasGradleWrapper: boolean;
+
+  // Precise framework detection (worker/src/detection) — drives engine selection.
+  framework?: Framework;
+  frameworkConfidence?: number;
+  frameworkSignals?: string[];
+  packageManager?: PackageManager;
+  frameworkVersions?: FrameworkVersions;
+  buildSystemInfo?: BuildSystemInfo;
+  /** Directory (relative to projectRoot) containing gradlew: '.' for Android native, 'android' for RN/Expo. */
+  gradleRoot?: string;
 
   // Security scan
   scanClean: boolean;

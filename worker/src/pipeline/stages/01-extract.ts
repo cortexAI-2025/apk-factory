@@ -117,9 +117,14 @@ export async function stageExtract(ctx: PipelineContext): Promise<StageResult> {
   return { ok: true };
 }
 
+// Root markers, in priority order: a Gradle/Flutter project root always wins
+// over a bare package.json (e.g. a React Native repo has both — its root
+// marker is `android/build.gradle`'s *parent*, not a JS-only heuristic).
+const ROOT_MARKERS = ['build.gradle', 'build.gradle.kts', 'pubspec.yaml', 'package.json'];
+
 async function findProjectRoot(dir: string): Promise<string> {
   // Check current dir
-  for (const f of ['build.gradle', 'build.gradle.kts', 'pubspec.yaml']) {
+  for (const f of ROOT_MARKERS) {
     try {
       await fs.access(path.join(dir, f));
       return dir;
@@ -133,7 +138,7 @@ async function findProjectRoot(dir: string): Promise<string> {
     .map((e) => path.join(dir, e.name));
 
   for (const sub of subdirs) {
-    for (const f of ['build.gradle', 'build.gradle.kts', 'pubspec.yaml']) {
+    for (const f of ROOT_MARKERS) {
       try {
         await fs.access(path.join(sub, f));
         return sub;
