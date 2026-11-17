@@ -13,9 +13,74 @@ import { PipelineContext, StageResult } from '../types';
 const MIN_SUPPORTED_SDK = 16;
 const MAX_SUPPORTED_SDK = 35;
 
+const JS_FRAMEWORKS = new Set(['REACT_NATIVE_CLI', 'EXPO_MANAGED', 'EXPO_BARE']);
+
 export async function stageValidate(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', '─── Stage 3/6: VALIDATE ────────────────────────────');
 
+  if (ctx.framework && JS_FRAMEWORKS.has(ctx.framework)) {
+    return stageValidateJs(ctx);
+  }
+  return stageValidateAndroidNative(ctx);
+}
+
+/**
+ * React Native CLI / Expo: package.json + lockfile must be reproducible.
+ * gradlew is NOT required yet for Expo managed (expo prebuild generates it
+ * during BUILD); React Native CLI must already have committed android/, so
+ * its gradlew is required here.
+ */
+async function stageValidateJs(ctx: PipelineContext): Promise<StageResult> {
+  const root = ctx.projectRoot;
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  try {
+    await fs.access(path.join(root, 'package.json'));
+    await ctx.log('info', '✓ package.json found');
+  } catch {
+    errors.push('package.json not found at project root');
+    await ctx.log('error', '✗ package.json not found');
+  }
+
+  const lockfiles: Record<string, string> = { npm: 'package-lock.json', yarn: 'yarn.lock', pnpm: 'pnpm-lock.yaml' };
+  const expectedLockfile = ctx.packageManager ? lockfiles[ctx.packageManager] : undefined;
+  if (expectedLockfile) {
+    try {
+      await fs.access(path.join(root, expectedLockfile));
+      await ctx.log('info', `✓ ${expectedLockfile} found (reproducible install: ${ctx.packageManager} ci)`);
+    } catch {
+      errors.push(`${expectedLockfile} not found — a lockfile is required for a reproducible install`);
+      await ctx.log('error', `✗ ${expectedLockfile} not found`);
+    }
+  }
+
+  if (ctx.framework === 'REACT_NATIVE_CLI') {
+    const gradleRoot = ctx.gradleRoot || 'android';
+    try {
+      await fs.access(path.join(root, gradleRoot, 'gradlew'));
+      await fs.chmod(path.join(root, gradleRoot, 'gradlew'), 0o755);
+      await ctx.log('info', `✓ ${gradleRoot}/gradlew found and made executable`);
+    } catch {
+      errors.push(`${gradleRoot}/gradlew not found — React Native CLI projects must commit their android/ wrapper`);
+      await ctx.log('error', `✗ ${gradleRoot}/gradlew not found`);
+    }
+  } else {
+    await ctx.log('info', ctx.buildSystemInfo?.androidGenerated
+      ? `✓ android/ already present — expo prebuild will be skipped`
+      : 'android/ not present yet — expo prebuild will generate it during BUILD');
+  }
+
+  for (const w of warnings) await ctx.log('warn', `⚠ ${w}`);
+  if (errors.length > 0) return { ok: false, fatal: true, error: errors.join('; ') };
+
+  ctx.gradleCommand = resolveGradleCommand(ctx.buildType, true);
+  await ctx.log('info', `Gradle command: ${ctx.gradleCommand} (run from ${ctx.gradleRoot || 'android'}/ after install${ctx.framework !== 'REACT_NATIVE_CLI' ? '/prebuild' : ''})`);
+  await ctx.log('info', `Validation passed (${warnings.length} warning(s))`);
+  return { ok: true };
+}
+
+async function stageValidateAndroidNative(ctx: PipelineContext): Promise<StageResult> {
   const root = ctx.projectRoot;
   const errors: string[] = [];
   const warnings: string[] = [];

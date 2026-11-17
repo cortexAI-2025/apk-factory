@@ -20,6 +20,7 @@ import { LogParser } from '../../log-parser';
 import { AiFixer } from '../../ai-fixer';
 import { STAGE_TIMEOUTS } from '../../security/sandbox-config';
 import { diagnoseFailure, formatDiagnosis } from '../../diagnose';
+import { getEngine } from '../../engines/engine-factory';
 
 const parser  = new LogParser();
 const fixer   = new AiFixer();
@@ -52,10 +53,15 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
 
   // Extra volume mount for Maven cache
   const extraVolumes = cacheAvailable ? maven.volumeMount() : [];
-  // Gradle does not auto-load project-level init.d scripts: pass it explicitly
-  const gradleCommand = cacheAvailable
-    ? `${ctx.gradleCommand} --init-script /workspace/.gradle/init.d/apk-factory-offline.gradle`
-    : ctx.gradleCommand;
+  // Gradle does not auto-load project-level init.d scripts: pass it explicitly.
+  // The engine decides WHERE in the command this flag belongs (appended
+  // directly for Android Native, or to the final gradlew line inside a
+  // multi-step script for React Native CLI / Expo).
+  const extraGradleArgs = cacheAvailable
+    ? '--init-script /workspace/.gradle/init.d/apk-factory-offline.gradle'
+    : undefined;
+  const engine = getEngine(ctx.framework);
+  await ctx.log('info', `Engine: ${engine.id}`);
 
   let attempt = 0;
 
@@ -66,12 +72,13 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
         await ctx.log('info', `────── Auto-fix attempt ${attempt}/${MAX_FIX_ATTEMPTS} ──────`);
       }
 
-      await ctx.log('info', `Command: ${ctx.gradleCommand}`);
+      const { command: gradleCommand, shell } = engine.composeCommand(ctx, extraGradleArgs);
 
       const result = await runtime.run({
         buildId:      ctx.buildId,
         projectPath:  ctx.projectRoot,
         gradleCommand,
+        shell,
         extraVolumes,
         timeoutMs:    STAGE_TIMEOUTS.BUILD,
         onLog: async (line) => {
