@@ -32,7 +32,7 @@ ENV ANDROID_HOME=/opt/android-sdk \
     ANDROID_SDK_ROOT=/opt/android-sdk \
     JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 
-ENV PATH="${JAVA_HOME}/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/36.0.0:${PATH}"
+ENV PATH="${JAVA_HOME}/bin:${ANDROID_HOME}/cmdline-tools/latest/bin:${ANDROID_HOME}/platform-tools:${ANDROID_HOME}/build-tools/37.0.0:${PATH}"
 
 # ── Install Android SDK Command-Line Tools ────────────────────────────────────
 RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
@@ -47,6 +47,7 @@ RUN mkdir -p ${ANDROID_HOME}/cmdline-tools \
 RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true \
     && sdkmanager \
         "platform-tools" \
+        "platforms;android-37.0" \
         "platforms;android-36" \
         "platforms;android-35" \
         "platforms;android-34" \
@@ -55,6 +56,7 @@ RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true \
         "platforms;android-31" \
         "platforms;android-30" \
         "platforms;android-29" \
+        "build-tools;37.0.0" \
         "build-tools;36.0.0" \
         "build-tools;35.0.0" \
         "build-tools;34.0.0" \
@@ -71,10 +73,10 @@ RUN mkdir -p ${GRADLE_USER_HOME}
 # ── Node.js (for React Native / Expo engines) ─────────────────────────────────
 # Pinned version, checksum-verified against Node's own published SHASUMS256.txt
 # at image-build time (not a runtime download — never fetched during a build).
-# Node 20.x LTS ("Iron"): broadly compatible with RN 0.73-0.76 / Expo SDK 50-52
-# at the time this image was authored. Revisit the pin if the project matrix
-# this factory targets moves to a newer RN/Expo baseline.
-ENV NODE_VERSION=20.18.1
+# Node 22.x LTS ("Jod"): required by RN 0.80+ (engines: "node >= 22.11.0") and
+# Expo SDK 53+. Pinned to a specific patch release; bump together with the RN
+# and Expo baselines the factory targets.
+ENV NODE_VERSION=22.23.5
 RUN set -eux; \
     ARCH="$(dpkg --print-architecture)"; \
     case "${ARCH}" in \
