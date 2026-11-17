@@ -11,3 +11,10 @@ jitpack.io
 github.com
 objects.githubusercontent.com
 release-assets.githubusercontent.com
+
+# React Native / Expo engines (Lot 2): npm/yarn/pnpm dependency installs and
+# "expo prebuild" template resolution. Validated as a reasonable minimal set
+# from the npm/Expo CLI documentation; NOT yet exercised against a real
+# Docker build in this sandbox (no Docker daemon here — see lot report).
+registry.npmjs.org
+registry.yarnpkg.com

@@ -68,6 +68,35 @@ RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true \
 ENV GRADLE_USER_HOME=/opt/gradle-home
 RUN mkdir -p ${GRADLE_USER_HOME}
 
+# ── Node.js (for React Native / Expo engines) ─────────────────────────────────
+# Pinned version, checksum-verified against Node's own published SHASUMS256.txt
+# at image-build time (not a runtime download — never fetched during a build).
+# Node 20.x LTS ("Iron"): broadly compatible with RN 0.73-0.76 / Expo SDK 50-52
+# at the time this image was authored. Revisit the pin if the project matrix
+# this factory targets moves to a newer RN/Expo baseline.
+ENV NODE_VERSION=20.18.1
+RUN set -eux; \
+    ARCH="$(dpkg --print-architecture)"; \
+    case "${ARCH}" in \
+        amd64) NODE_ARCH=x64 ;; \
+        arm64) NODE_ARCH=arm64 ;; \
+        *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
+    esac; \
+    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -O /tmp/node.tar.xz; \
+    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" -O /tmp/node-SHASUMS256.txt; \
+    grep " node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz\$" /tmp/node-SHASUMS256.txt | sha256sum -c -; \
+    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
+    rm -f /tmp/node.tar.xz /tmp/node-SHASUMS256.txt
+
+# npm ships with Node; pin pnpm/yarn via Corepack (no unversioned global CLI —
+# "npx expo"/"npx pnpm"/"yarn" always resolve the project's own declared
+# version, falling back to these pins only when a project's lockfile/
+# packageManager field doesn't specify one).
+ENV COREPACK_ENABLE_DOWNLOAD_PROMPT=0
+RUN corepack enable \
+    && corepack prepare pnpm@9.12.3 --activate \
+    && corepack prepare yarn@1.22.22 --activate
+
 # ── Non-root user ─────────────────────────────────────────────────────────────
 RUN groupadd -g 1000 builder \
     && useradd -u 1000 -g builder -m -s /bin/bash builder \

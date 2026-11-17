@@ -50,13 +50,17 @@ export abstract class BaseDockerRuntime implements IRuntime {
   protected describe(): string { return this.name; }
 
   async run(opts: ContainerRunOptions): Promise<ContainerRunResult> {
-    const { buildId, projectPath, gradleCommand, onLog, onProgress, timeoutMs = SANDBOX.BUILD_TIMEOUT_MS } = opts;
+    const { buildId, projectPath, gradleCommand, shell = false, onLog, onProgress, timeoutMs = SANDBOX.BUILD_TIMEOUT_MS } = opts;
     const containerName = `apk-build-${buildId.slice(0, 12)}`;
     const startMs = Date.now();
     const lines: string[] = [];
 
-    // Verify gradlew executable
-    try { await fs.chmod(path.join(projectPath, 'gradlew'), 0o755); } catch {}
+    // Verify gradlew executable — only meaningful when it already sits at the
+    // workspace root (Android Native). For shell-mode engines (RN CLI, Expo)
+    // gradlew is generated/nested under android/ by the script itself.
+    if (!shell) {
+      try { await fs.chmod(path.join(projectPath, 'gradlew'), 0o755); } catch {}
+    }
 
     // The worker extracts as root but the sandbox runs as uid 1000 (builder):
     // make the workspace writable so Gradle can create build/ outputs.
@@ -71,11 +75,18 @@ export abstract class BaseDockerRuntime implements IRuntime {
       onLog(`[${this.name}] WARNING: unrestricted network (BUILD_NETWORK_MODE=bridge) — use 'restricted' in production`, 'stderr');
     }
     onLog(`[${this.name}] Security: ${this.securityLevel}`, 'stdout');
-    onLog(`[${this.name}] Command: ${gradleCommand}`, 'stdout');
+    onLog(`[${this.name}] Command: ${shell ? '(multi-step shell script — see engine log lines below)' : gradleCommand}`, 'stdout');
+    if (shell) for (const l of gradleCommand.split('\n')) onLog(`[${this.name}]   ${l}`, 'stdout');
 
-    const args = this.sandboxArgs(containerName, projectPath, [
-      ...gradleCommand.trim().split(/\s+/), '--no-daemon', '--stacktrace', '--console=plain',
-    ], opts);
+    // Shell-mode engines (RN CLI, Expo) run a full script and must skip the
+    // entrypoint's "gradlew exists at workspace root" precheck: gradlew is
+    // nested under android/ and only appears after npm install/prebuild runs
+    // *inside* this same container. Android Native (shell=false) is unaffected.
+    const command = this.buildCommandArgv(gradleCommand, shell);
+    const runOpts = shell
+      ? { ...opts, extraEnv: [...(opts.extraEnv || []), '--env', 'SKIP_GRADLE_PRECHECK=true'] }
+      : opts;
+    const args = this.sandboxArgs(containerName, projectPath, command, runOpts);
 
     return new Promise((resolve) => {
       const proc = spawn('docker', ['run', ...args], { stdio: ['ignore', 'pipe', 'pipe'], env: process.env });
@@ -149,6 +160,18 @@ export abstract class BaseDockerRuntime implements IRuntime {
   }
 
   // ── Private helpers ────────────────────────────────────────────────────────
+
+  /**
+   * The in-container argv for a given command string. Public (pure, no I/O)
+   * so tests exercise the exact split/wrap logic without spawning Docker.
+   * shell=false (Android Native): split on whitespace, append Gradle flags.
+   * shell=true (RN CLI, Expo): run the full multi-step script via bash -lc.
+   */
+  buildCommandArgv(gradleCommand: string, shell: boolean): string[] {
+    return shell
+      ? ['bash', '-lc', gradleCommand]
+      : [...gradleCommand.trim().split(/\s+/), '--no-daemon', '--stacktrace', '--console=plain'];
+  }
 
   /**
    * Full `docker run` argument list for a sandboxed command. Public so the

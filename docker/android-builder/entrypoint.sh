@@ -20,16 +20,25 @@ echo "[entrypoint] Command   : $*"
 echo "[entrypoint] ──────────────────────────────────────────────────"
 
 # ── Validate workspace ───────────────────────────────────────────────────────
-if [ ! -f "${WORKSPACE}/gradlew" ]; then
-    echo "[entrypoint] ERROR: gradlew not found in ${WORKSPACE}"
-    exit 1
+# Multi-step engines (React Native CLI, Expo) run "npm ci" / "expo prebuild"
+# *inside this container* before gradlew exists, possibly nested under
+# android/ rather than at the workspace root — SKIP_GRADLE_PRECHECK=true is
+# set by the worker (base.runtime.ts) only for those engines, never for a
+# plain Android Native build.
+if [ "${SKIP_GRADLE_PRECHECK:-}" != "true" ]; then
+    if [ ! -f "${WORKSPACE}/gradlew" ]; then
+        echo "[entrypoint] ERROR: gradlew not found in ${WORKSPACE}"
+        exit 1
+    fi
+    if [ ! -f "${WORKSPACE}/build.gradle" ] && [ ! -f "${WORKSPACE}/build.gradle.kts" ] \
+       && [ ! -f "${WORKSPACE}/settings.gradle" ] && [ ! -f "${WORKSPACE}/settings.gradle.kts" ]; then
+        echo "[entrypoint] ERROR: No Gradle build file found in ${WORKSPACE}"
+        exit 1
+    fi
+    chmod +x "${WORKSPACE}/gradlew" 2>/dev/null || true
+else
+    echo "[entrypoint] Gradle precheck skipped (SKIP_GRADLE_PRECHECK=true) — engine script prepares android/ itself"
 fi
-if [ ! -f "${WORKSPACE}/build.gradle" ] && [ ! -f "${WORKSPACE}/build.gradle.kts" ] \
-   && [ ! -f "${WORKSPACE}/settings.gradle" ] && [ ! -f "${WORKSPACE}/settings.gradle.kts" ]; then
-    echo "[entrypoint] ERROR: No Gradle build file found in ${WORKSPACE}"
-    exit 1
-fi
-chmod +x "${WORKSPACE}/gradlew" 2>/dev/null || true
 
 # ── Writable homes (root filesystem is read-only) ────────────────────────────
 export HOME="${HOME:-/tmp/home}"
@@ -52,6 +61,14 @@ if [ -n "${BUILD_PROXY_HOST:-}" ]; then
         echo "systemProp.http.nonProxyHosts=localhost|127.0.0.1"
         echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 ${PROXY_OPTS}"
     } >> "${GRADLE_USER_HOME}/gradle.properties"
+    # npm/yarn/pnpm (React Native / Expo engines) read these standard vars —
+    # lower-case forms too, since some tools only check the lower-case name.
+    export HTTP_PROXY="http://${BUILD_PROXY_HOST}:${P}"
+    export HTTPS_PROXY="http://${BUILD_PROXY_HOST}:${P}"
+    export http_proxy="${HTTP_PROXY}"
+    export https_proxy="${HTTPS_PROXY}"
+    export NO_PROXY="localhost,127.0.0.1"
+    export no_proxy="${NO_PROXY}"
     echo "[entrypoint] Egress via allow-list proxy ${BUILD_PROXY_HOST}:${P}"
 fi
 

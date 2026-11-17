@@ -1,7 +1,17 @@
 export interface ContainerRunOptions {
   buildId:       string;
   projectPath:   string;
+  /**
+   * The in-container command. For Android Native (shell=false, the default)
+   * this is a bare Gradle invocation ("./gradlew assembleDebug") that the
+   * runtime splits and runs directly, appending --no-daemon/--stacktrace.
+   * For multi-step engines (React Native CLI, Expo — shell=true) this is a
+   * full bash script (install deps, prebuild, cd android, run gradlew) run
+   * via `bash -lc`, since those steps precede Gradle and gradlew may not
+   * exist at the workspace root yet.
+   */
   gradleCommand: string;
+  shell?:        boolean;
   extraVolumes?: string[];   // additional "--volume host:ctr:ro" entries
   extraEnv?:     string[];   // additional "--env KEY=VALUE" entries
   onLog:         (line: string, stream: 'stdout' | 'stderr') => void;
