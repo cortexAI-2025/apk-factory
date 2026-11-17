@@ -53,8 +53,8 @@ test('engine-factory: Android Native and undefined both resolve to the untouched
   }
 });
 
-test('engine-factory: EXPO_MANAGED has no engine yet (Lot 4) and fails loudly, never silently', () => {
-  assert.throws(() => getEngine('EXPO_MANAGED'), /No build engine implemented/);
+test('engine-factory: CAPACITOR has no engine yet and fails loudly, never silently', () => {
+  assert.throws(() => getEngine('CAPACITOR'), /No build engine implemented/);
 });
 
 // ── Pipeline integration (real stages, no Docker) ───────────────────────────

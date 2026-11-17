@@ -69,6 +69,7 @@ async function stageValidateJs(ctx: PipelineContext): Promise<StageResult> {
     await ctx.log('info', ctx.buildSystemInfo?.androidGenerated
       ? `✓ android/ already present — expo prebuild will be skipped`
       : 'android/ not present yet — expo prebuild will generate it during BUILD');
+    await validateExpoConfig(ctx, root, warnings);
   }
 
   for (const w of warnings) await ctx.log('warn', `⚠ ${w}`);
@@ -78,6 +79,37 @@ async function stageValidateJs(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', `Gradle command: ${ctx.gradleCommand} (run from ${ctx.gradleRoot || 'android'}/ after install${ctx.framework !== 'REACT_NATIVE_CLI' ? '/prebuild' : ''})`);
   await ctx.log('info', `Validation passed (${warnings.length} warning(s))`);
   return { ok: true };
+}
+
+/**
+ * Soft validation of the Expo config (app.json's "expo" key): a missing
+ * android.package only warns, since `expo prebuild` fills in a default from
+ * the project slug — but that default is rarely what should ship to Play
+ * Store, so surface it explicitly rather than silently building with it.
+ * app.config.js/.ts is not statically parsed here (arbitrary JS) — its
+ * presence alone was already enough for 02-detect.ts to classify the
+ * framework as Expo.
+ */
+async function validateExpoConfig(ctx: PipelineContext, root: string, warnings: string[]): Promise<void> {
+  const appJsonRaw = await fs.readFile(path.join(root, 'app.json'), 'utf-8').catch(() => null);
+  if (!appJsonRaw) return; // app.config.js/ts in use instead — nothing to statically check
+
+  let expoConfig: any;
+  try {
+    expoConfig = JSON.parse(appJsonRaw)?.expo;
+  } catch {
+    warnings.push('app.json is not valid JSON — expo prebuild will fail to read it');
+    await ctx.log('warn', '⚠ app.json is not valid JSON');
+    return;
+  }
+  if (!expoConfig) return;
+
+  if (!expoConfig.android?.package) {
+    warnings.push('app.json has no expo.android.package — expo prebuild will derive a default from the slug, unlikely to be the intended Play Store applicationId');
+    await ctx.log('warn', '⚠ expo.android.package not set in app.json');
+  } else {
+    await ctx.log('info', `✓ expo.android.package: ${expoConfig.android.package}`);
+  }
 }
 
 async function stageValidateAndroidNative(ctx: PipelineContext): Promise<StageResult> {
