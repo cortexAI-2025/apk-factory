@@ -11,7 +11,7 @@ import * as path from 'path';
 import { PipelineContext, StageResult } from '../types';
 
 const MIN_SUPPORTED_SDK = 16;
-const MAX_SUPPORTED_SDK = 35;
+const MAX_SUPPORTED_SDK = 37;
 
 const JS_FRAMEWORKS = new Set(['REACT_NATIVE_CLI', 'EXPO_MANAGED', 'EXPO_BARE']);
 

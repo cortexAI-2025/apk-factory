@@ -12,9 +12,16 @@ github.com
 objects.githubusercontent.com
 release-assets.githubusercontent.com
 
-# React Native / Expo engines (Lot 2): npm/yarn/pnpm dependency installs and
+# React Native / Expo engines (Lot 2+): npm/yarn/pnpm dependency installs and
 # "expo prebuild" template resolution. Validated as a reasonable minimal set
 # from the npm/Expo CLI documentation; NOT yet exercised against a real
 # Docker build in this sandbox (no Docker daemon here — see lot report).
 registry.npmjs.org
 registry.yarnpkg.com
+
+# React Native AAR packages (react-android, hermes-android).
+# This is the ONLY Maven host that serves these artifacts for RN 0.80+.
+# Maven Central 301-redirects to this domain for com.facebook.react group artifacts.
+# Without this entry, any React Native CLI or Expo build will fail at the
+# Gradle dependency-resolution phase (HTTP 403 or connect_rejected).
+repo.reactnative.dev

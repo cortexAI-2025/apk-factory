@@ -63,6 +63,8 @@ RUN yes | sdkmanager --licenses > /dev/null 2>&1 || true \
         "build-tools;33.0.2" \
         "build-tools;32.0.0" \
         "build-tools;30.0.3" \
+        "ndk;27.1.12297006" \
+        "cmake;3.22.1" \
     && chmod -R o+rX ${ANDROID_HOME}
 
 # The Gradle distribution requested by the project's wrapper is downloaded at build
