@@ -15,6 +15,7 @@
 import { IRuntime, RuntimeInfo } from './runtime.interface';
 import { DockerRuntime }  from './docker.runtime';
 import { GVisorRuntime }  from './gvisor.runtime';
+import { LocalRuntime }   from './local.runtime';
 import { logger } from '../logger';
 
 const FORCED = (process.env.RUNTIME || 'auto').toLowerCase();
@@ -23,6 +24,7 @@ const FORCED = (process.env.RUNTIME || 'auto').toLowerCase();
 const RUNTIMES: IRuntime[] = [
   new GVisorRuntime(),
   new DockerRuntime(),
+  new LocalRuntime(),
 ];
 
 let resolvedRuntime: IRuntime | null = null;
@@ -32,7 +34,7 @@ export async function getRuntime(): Promise<IRuntime> {
 
   if (FORCED !== 'auto') {
     const forced = RUNTIMES.find((r) => r.name === FORCED);
-    if (!forced) throw new Error(`Unknown RUNTIME="${FORCED}". Valid: docker, gvisor, auto`);
+    if (!forced) throw new Error(`Unknown RUNTIME="${FORCED}". Valid: docker, gvisor, local, auto`);
     const ok = await forced.isAvailable();
     if (!ok) throw new Error(`Forced RUNTIME="${FORCED}" is not available on this host`);
     resolvedRuntime = forced;
