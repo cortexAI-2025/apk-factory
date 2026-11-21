@@ -101,6 +101,15 @@ RUN corepack enable \
     && corepack prepare pnpm@9.12.3 --activate \
     && corepack prepare yarn@1.22.22 --activate
 
+# Cordova's platform tooling shells out to a system `gradle` to install the
+# project wrapper (cordova-android check_reqs). The wrapper alone is not enough.
+ENV GRADLE_VERSION=8.7
+RUN wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip \
+    && unzip -q /tmp/gradle.zip -d /opt \
+    && chmod +x "/opt/gradle-${GRADLE_VERSION}/bin/gradle" \
+    && ln -sfn "/opt/gradle-${GRADLE_VERSION}/bin/gradle" /usr/local/bin/gradle \
+    && rm /tmp/gradle.zip
+
 # ── Flutter SDK (stable 3.50.1, precached for Android) ───────────────────────
 # The sandbox root filesystem is read-only at build time, so the engine stamp
 # script must exit when bin/cache is not writable and the stamp already exists.
