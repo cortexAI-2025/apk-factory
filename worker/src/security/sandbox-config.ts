@@ -39,14 +39,22 @@ export const SANDBOX = {
   NETWORK_NAME: process.env.BUILD_NETWORK_NAME || 'apk-build-net',
   PROXY_URL: process.env.BUILD_PROXY_URL || 'http://apk-egress-proxy:3128',
 
-  // V1 scope: debug APKs only. Release/AAB need ENABLE_RELEASE_BUILDS=true.
-  ALLOW_RELEASE_BUILDS: process.env.ENABLE_RELEASE_BUILDS === 'true',
+  // Release APK + AAB are on unless explicitly disabled.
+  // Set ENABLE_RELEASE_BUILDS=false to lock the worker back to debug APKs only.
+  // Read at call time so tests and the process see the current environment.
 
   // ── Security flags ────────────────────────────────────────────────────────
   NO_NEW_PRIVILEGES: true,
   READ_ONLY_ROOT: true,
   SECCOMP_PROFILE: process.env.SECCOMP_PROFILE || '/etc/apk-factory/seccomp.json',
 } as const;
+
+/** Release APK and AAB are enabled unless ENABLE_RELEASE_BUILDS is false or 0. */
+export function releaseBuildsEnabled(): boolean {
+  const raw = (process.env.ENABLE_RELEASE_BUILDS ?? '').trim().toLowerCase();
+  if (raw === '') return true;
+  return raw === 'true' || raw === '1' || raw === 'yes';
+}
 
 // Per-stage timeouts (all in ms)
 export const STAGE_TIMEOUTS = {

@@ -21,6 +21,7 @@ import { AiFixer } from '../../ai-fixer';
 import { STAGE_TIMEOUTS } from '../../security/sandbox-config';
 import { diagnoseFailure, formatDiagnosis } from '../../diagnose';
 import { getEngine } from '../../engines/engine-factory';
+import { prepareReleaseSigning } from '../../signing/release-signing';
 
 const parser  = new LogParser();
 const fixer   = new AiFixer();
@@ -60,6 +61,15 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
   const extraGradleArgs = cacheAvailable
     ? '--init-script /workspace/.gradle/init.d/apk-factory-offline.gradle'
     : undefined;
+  let signingArgs: string | undefined;
+  if (ctx.buildType === 'RELEASE' || ctx.buildType === 'AAB') {
+    const signing = await prepareReleaseSigning(ctx.projectRoot);
+    signingArgs = signing.gradleArgs;
+    await ctx.log('info', signing.source === 'env'
+      ? 'Release signing: using KEYSTORE_PATH'
+      : 'Release signing: factory upload key (set KEYSTORE_PATH to use your own)');
+  }
+  const gradleExtra = [extraGradleArgs, signingArgs].filter(Boolean).join(' ') || undefined;
   const engine = getEngine(ctx.framework);
   await ctx.log('info', `Engine: ${engine.id}`);
 
@@ -72,7 +82,7 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
         await ctx.log('info', `────── Auto-fix attempt ${attempt}/${MAX_FIX_ATTEMPTS} ──────`);
       }
 
-      const { command: gradleCommand, shell } = engine.composeCommand(ctx, extraGradleArgs);
+      const { command: gradleCommand, shell } = engine.composeCommand(ctx, gradleExtra);
 
       const result = await runtime.run({
         buildId:      ctx.buildId,

@@ -21,6 +21,7 @@ import * as fs from 'fs/promises';
 import { createWriteStream } from 'fs';
 import { createHash, randomUUID, timingSafeEqual } from 'crypto';
 import { BadRequestException, ConflictException, NotFoundException, PayloadTooLargeException, Query } from '@nestjs/common';
+import { releaseBuildsEnabled } from './release-policy';
 
 @ApiExcludeController()
 @Controller('internal/builds')
@@ -196,7 +197,7 @@ export class InternalBuildsController {
       throw new ConflictException('Build is not accepting artifacts');
     }
 
-    const allowRelease = this.config.get('ENABLE_RELEASE_BUILDS') === 'true';
+    const allowRelease = releaseBuildsEnabled(this.config.get<string>('ENABLE_RELEASE_BUILDS'));
     const m = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.(apk|aab)$/.exec(q.fileName || '');
     if (!m || (m[1] === 'aab' && !allowRelease)) throw new BadRequestException('Invalid artifact file name');
     const variant = /^[A-Za-z0-9_-]{1,60}$/.test(q.variant || '') ? q.variant : 'debug';

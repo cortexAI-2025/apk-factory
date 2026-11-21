@@ -45,9 +45,17 @@ export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', `APK size: ${(apkSize / 1024 / 1024).toFixed(2)} MB`);
 
   // ── 3. Upload artifact via API ───────────────────────────────────────────
-  await ctx.log('info', `Uploading APK...`);
+  await ctx.log('info', `Uploading ${ctx.buildType === 'AAB' ? 'AAB' : 'APK'}...`);
   try {
-    const uploadResult = await ctx.uploadApk(apkPath);
+    const digest = await sha256(apkPath);
+    const uploadResult = await ctx.uploadApk(apkPath, {
+      fileName: path.basename(apkPath),
+      variant: 'release',
+      abi: 'universal',
+      module: '',
+      recommended: true,
+      sha256: digest,
+    });
     ctx.apkUrl = uploadResult.apkUrl;
     ctx.apkSize = apkSize;
     await ctx.log('info', `✓ APK uploaded successfully (${(apkSize / 1024 / 1024).toFixed(2)} MB)`);

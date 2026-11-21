@@ -59,7 +59,7 @@ The image `docker/android-builder/Dockerfile` must be built successfully before 
 | `BUILD_PROXY_PORT` | Yes | Port of the squid egress proxy |
 | `BUILD_TIMEOUT_MS` | No | Build timeout in ms (default: 1 500 000 = 25 min) |
 | `BUILD_MAX_WORKSPACE_MB` | No | Workspace disk limit in MB (default: 4096) |
-| `ENABLE_RELEASE_BUILDS` | No | Set to `true` to allow `assembleRelease` / `bundleRelease` |
+| `ENABLE_RELEASE_BUILDS` | No | Defaults to on. Set `false` to allow debug APKs only. |
 | `DATABASE_URL` | Yes | Prisma connection string |
 | `UPLOAD_BUCKET` | Yes | Storage bucket name for APK artifacts |
 
@@ -110,7 +110,7 @@ Before production deployment, verify:
 - [ ] Workspace path is under a dedicated, isolated directory per build job (not shared between jobs).
 - [ ] `BUILD_PROXY_HOST` and `BUILD_PROXY_PORT` are set; build containers cannot reach `0.0.0.0/0` directly.
 - [ ] Uploaded APK artifacts are stored with owner-scoped access control (verified by `artifacts.test.cjs`).
-- [ ] `ENABLE_RELEASE_BUILDS` is `false` (or unset) unless release signing is explicitly configured.
+- [ ] `ENABLE_RELEASE_BUILDS` left on (default) unless this host must refuse release APKs and AABs. Release/AAB are signed with `KEYSTORE_*` or with the worker's generated upload key.
 - [ ] No secrets or API keys are present in log output (redact-diagnose layer active).
 - [ ] Disk watchdog is active (`BUILD_MAX_WORKSPACE_MB` does not exceed available disk on the host).
 

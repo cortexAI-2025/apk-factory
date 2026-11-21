@@ -139,7 +139,9 @@ const wrapperFiles = [
   const noSecret = await fetch(`${API}/api/v1/internal/builds/${buildId}/status`, { method: 'PATCH', body: '{}', headers: { 'content-type': 'application/json' } });
   check('internal worker endpoint refuses a missing secret', noSecret.status === 401, `HTTP ${noSecret.status}`);
   const rel = await api(`/projects/${projectId}/builds`, { method: 'POST', token: ownerToken, body: { buildType: 'RELEASE' } });
-  check('V1 scope: release builds are refused', rel.status === 400, `HTTP ${rel.status}`);
+  check('release builds are accepted', rel.status === 201 || rel.status === 200, `HTTP ${rel.status} ${JSON.stringify(rel.body).slice(0, 180)}`);
+  const aab = await api(`/projects/${projectId}/builds`, { method: 'POST', token: ownerToken, body: { buildType: 'AAB' } });
+  check('AAB builds are accepted', aab.status === 201 || aab.status === 200, `HTTP ${aab.status} ${JSON.stringify(aab.body).slice(0, 180)}`);
 
   L.finish('api');
 })().catch((e) => { console.error(e); process.exit(1); });

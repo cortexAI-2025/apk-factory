@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { QueueService } from '../queue/queue.service';
+import { releaseBuildsEnabled } from './release-policy';
 import { StorageService } from '../storage/storage.service';
 import { CreateBuildDto } from './dto/create-build.dto';
 import { BuildStatus, BuildType } from '@prisma/client';
@@ -48,8 +49,8 @@ export class BuildsService {
       );
     }
 
-    // V1 scope: debug APKs only (release signing and AAB are out of scope)
-    if (dto.buildType !== BuildType.DEBUG && process.env.ENABLE_RELEASE_BUILDS !== 'true') {
+    // Release APK and AAB are on unless ENABLE_RELEASE_BUILDS=false.
+    if (dto.buildType !== BuildType.DEBUG && !releaseBuildsEnabled()) {
       throw new BadRequestException('Only debug APK builds are supported in this version.');
     }
 

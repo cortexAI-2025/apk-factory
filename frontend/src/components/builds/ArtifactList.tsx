@@ -23,15 +23,24 @@ export function ArtifactList({ projectId, buildId, artifacts }: {
     }
   };
 
+  const aab = artifacts.some((a) => a.fileName.endsWith('.aab'));
+  const release = artifacts.some((a) => /release/i.test(a.variant) || /release/i.test(a.fileName));
+  const title = aab ? 'Android App Bundle' : release ? 'Release APK' : 'Debug APK';
+  const hint = aab
+    ? 'Signed app bundle. Upload it to Play Console, or convert it with bundletool if you need a device APK.'
+    : release
+      ? 'Signed with your keystore, or with the factory upload key when none is configured.'
+      : 'Signed with the debug key. On your phone, allow “Install unknown apps” for your browser or file manager, then open the file.';
+
   return (
     <div className="glass rounded-xl p-5 mt-5" data-testid="artifact-list">
       <h2 className="text-white font-semibold mb-1 flex items-center gap-2">
         <Smartphone className="w-4 h-4 text-green-400" />
-        Debug APK{artifacts.length > 1 ? `s (${artifacts.length} variants)` : ''}
+        {title}{artifacts.length > 1 ? ` (${artifacts.length})` : ''}
       </h2>
       <p className="text-gray-500 text-xs mb-4">
-        Signed with the debug key. On your phone, allow “Install unknown apps” for your browser or file manager, then open the file.
-        {artifacts.length > 1 && ' Several variants were built: the recommended one is listed first (universal or arm64-v8a suits recent Samsung Galaxy phones).'}
+        {hint}
+        {!aab && artifacts.length > 1 && ' Several variants were built: the recommended one is listed first (universal or arm64-v8a suits recent Samsung Galaxy phones).'}
       </p>
       <div className="space-y-3">
         {artifacts.map((a) => (

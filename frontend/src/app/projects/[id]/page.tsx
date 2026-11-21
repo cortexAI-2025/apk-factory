@@ -31,6 +31,12 @@ function fmtDuration(secs?: number) {
   return `${Math.floor(secs / 60)}m ${secs % 60}s`;
 }
 
+const BUILD_OPTIONS: { id: BuildType; label: string; hint: string }[] = [
+  { id: 'DEBUG', label: 'Debug APK', hint: 'Installable, debug key' },
+  { id: 'RELEASE', label: 'Release APK', hint: 'Signed for sideload' },
+  { id: 'AAB', label: 'AAB', hint: 'Play App Bundle' },
+];
+
 function fmtSize(bytes?: number) {
   if (!bytes) return '—';
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -133,14 +139,28 @@ export default function ProjectPage() {
             <div className="glass rounded-xl p-5">
               <h2 className="text-white font-semibold mb-4 flex items-center gap-2">
                 <Play className="w-4 h-4 text-green-400" />
-                Build APK
+                Build
               </h2>
 
               <div className="space-y-3 mb-4">
                 <div>
                   <label className="text-xs text-gray-400 block mb-1.5">Build type</label>
-                  <div className="py-2 px-3 rounded-lg text-xs font-medium bg-green-500/10 text-green-400 border border-green-500/30">
-                    Debug APK <span className="text-gray-500 font-normal">· signed with the debug key, installable on any device</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {BUILD_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => setBuildType(opt.id)}
+                        className={`rounded-lg px-2 py-2 text-left border transition-colors ${
+                          buildType === opt.id
+                            ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                            : 'bg-gray-900 text-gray-400 border-gray-800 hover:border-gray-600'
+                        }`}
+                      >
+                        <div className="text-xs font-medium">{opt.label}</div>
+                        <div className="text-[10px] text-gray-500 mt-0.5 leading-tight">{opt.hint}</div>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
@@ -175,7 +195,7 @@ export default function ProjectPage() {
                 ) : (
                   <Play className="w-4 h-4" />
                 )}
-                {buildLoading ? 'Starting...' : 'Build APK'}
+                {buildLoading ? 'Starting...' : buildType === 'AAB' ? 'Build AAB' : buildType === 'RELEASE' ? 'Build release APK' : 'Build debug APK'}
               </button>
             </div>
 

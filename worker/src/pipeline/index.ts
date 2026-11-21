@@ -16,7 +16,7 @@ import * as path from 'path';
 import axios from 'axios';
 import { logger } from '../logger';
 import { redact } from '../security/redact';
-import { SANDBOX } from '../security/sandbox-config';
+import { SANDBOX, releaseBuildsEnabled } from '../security/sandbox-config';
 import { PipelineContext } from './types';
 import { stageExtract }  from './stages/01-extract';
 import { stageDetect }   from './stages/02-detect';
@@ -120,7 +120,7 @@ export async function runPipeline(input: PipelineInput, job?: Job): Promise<void
     { name: 'OUTPUTTING',  fn: () => stageOutput(ctx) },
   ];
 
-  if (input.buildType !== 'DEBUG' && !SANDBOX.ALLOW_RELEASE_BUILDS) {
+  if (input.buildType !== 'DEBUG' && !releaseBuildsEnabled()) {
     await ctx.updateStatus('FAILED', { errorMessage: 'Only debug APK builds are supported in this version.' });
     return;
   }
