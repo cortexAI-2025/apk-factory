@@ -64,6 +64,38 @@ test('engine-factory: CAPACITOR, CORDOVA and FLUTTER each have a shell engine', 
   const flutter = getEngine('FLUTTER').composeCommand({ buildType: 'DEBUG' });
   assert.match(flutter.command, /flutter build apk --debug/);
   assert.match(flutter.command, /android-arm,android-arm64,android-x64/);
+  assert.match(flutter.command, /node -e /);
+  assert.match(flutter.command, /MaxMetaspaceSize=768m/);
+});
+
+test('flutter engine caps the template 8G heap on the workspace copy only', () => {
+  const fss = require('node:fs');
+  const { capFlutterGradleHeap } = require('../dist/engines/flutter.engine');
+  const root = fss.mkdtempSync(path.join(os.tmpdir(), 'flutter-heap-'));
+  const props = path.join(root, 'android', 'gradle.properties');
+  fss.mkdirSync(path.dirname(props), { recursive: true });
+  const stock = [
+    'org.gradle.jvmargs=-Xmx8G -XX:MaxMetaspaceSize=4G -XX:ReservedCodeCacheSize=512m -XX:+HeapDumpOnOutOfMemoryError',
+    'android.useAndroidX=true',
+    'android.newDsl=false',
+    '',
+  ].join('\n');
+  fss.writeFileSync(props, stock);
+  assert.equal(capFlutterGradleHeap(root), true);
+  const capped = fss.readFileSync(props, 'utf8');
+  assert.match(capped, /Xmx1024m/);
+  assert.match(capped, /MaxMetaspaceSize=768m/);
+  assert.match(capped, /ReservedCodeCacheSize=128m/);
+  assert.doesNotMatch(capped, /HeapDumpOnOutOfMemoryError/);
+  assert.match(capped, /org\.gradle\.daemon=false/);
+  assert.match(capped, /org\.gradle\.workers\.max=1/);
+  assert.match(capped, /android\.useAndroidX=true/);
+  assert.equal(capFlutterGradleHeap(root), false);
+
+  fss.writeFileSync(props, 'org.gradle.jvmargs=-Xmx512m -XX:MaxMetaspaceSize=256m\n');
+  assert.equal(capFlutterGradleHeap(root), false);
+  assert.equal(fss.readFileSync(props, 'utf8'), 'org.gradle.jvmargs=-Xmx512m -XX:MaxMetaspaceSize=256m\n');
+  fss.rmSync(root, { recursive: true, force: true });
 });
 
 // ── Pipeline integration (real stages, no Docker) ───────────────────────────

@@ -106,7 +106,7 @@ export class LocalRuntime implements IRuntime {
 
     // Build argv
     const argv: string[] = shell
-      ? ['bash', '-lc', gradleCommand]
+      ? ['bash', '-c', gradleCommand]
       : [...gradleCommand.trim().split(/\s+/), '--no-daemon', '--stacktrace', '--console=plain'];
 
     onLog(`[local] Command:  ${argv.join(' ')}`, 'stdout');

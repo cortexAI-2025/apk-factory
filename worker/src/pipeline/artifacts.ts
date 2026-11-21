@@ -1,5 +1,6 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { createHash } from 'crypto';
 import { PipelineContext } from './types';
 
 /** Select only Gradle / Flutter outputs matching the requested task, never source APKs. */
@@ -23,11 +24,49 @@ export async function findBuildArtifact(
   }
 
   await walk(projectRoot);
-  matches.sort();
-  if (matches.length > 1) {
-    throw new Error(`Multiple ${buildType} artifacts found; cannot choose safely: ${matches.map((file) => path.relative(projectRoot, file)).join(', ')}`);
+  const chosen = await collapseIdenticalFlutterCopy(matches);
+  chosen.sort();
+  if (chosen.length > 1) {
+    throw new Error(`Multiple ${buildType} artifacts found; cannot choose safely: ${chosen.map((file) => path.relative(projectRoot, file)).join(', ')}`);
   }
-  return matches[0] ?? null;
+  return chosen[0] ?? null;
+}
+
+/**
+ * `flutter build apk` writes the same bytes to outputs/flutter-apk and to
+ * outputs/apk. Those two paths are one artifact. Two different modules, or
+ * two files that are not byte-identical, stay ambiguous.
+ */
+async function collapseIdenticalFlutterCopy(matches: string[]): Promise<string[]> {
+  const flutter = matches.filter((file) => file.split(path.sep).includes('flutter-apk'));
+  if (flutter.length !== 1) return matches;
+  const chosen = flutter[0];
+  const kept: string[] = [];
+  for (const file of matches) {
+    if (file === chosen) {
+      kept.push(file);
+      continue;
+    }
+    const parts = file.split(path.sep);
+    const out = parts.lastIndexOf('outputs');
+    const gradleApk = out >= 0 && parts[out + 1] === 'apk';
+    if (gradleApk && path.basename(file) === path.basename(chosen) && await sameBytes(file, chosen)) {
+      continue;
+    }
+    kept.push(file);
+  }
+  return kept;
+}
+
+async function sameBytes(a: string, b: string): Promise<boolean> {
+  const [sa, sb] = await Promise.all([fs.stat(a), fs.stat(b)]);
+  if (sa.size !== sb.size) return false;
+  const [ha, hb] = await Promise.all([sha256File(a), sha256File(b)]);
+  return ha === hb;
+}
+
+function sha256File(file: string): Promise<string> {
+  return fs.readFile(file).then((buf) => createHash('sha256').update(buf).digest('hex'));
 }
 
 function matchesRequestedOutput(

@@ -14,22 +14,22 @@ test('Android Native (shell=false) splits the command and appends Gradle flags, 
   assert.deepEqual(argv, ['./gradlew', 'assembleDebug', '--no-daemon', '--stacktrace', '--console=plain']);
 });
 
-test('RN CLI / Expo (shell=true) runs the full script via bash -lc, untouched', () => {
+test('RN CLI / Expo (shell=true) runs the full script via bash -c so PATH is kept', () => {
   const script = 'npm ci\ncd android\n./gradlew assembleDebug --no-daemon';
   const argv = rt.buildCommandArgv(script, true);
-  assert.deepEqual(argv, ['bash', '-lc', script]);
+  assert.deepEqual(argv, ['bash', '-c', script]);
 });
 
 test('a shell-mode command composed with SKIP_GRADLE_PRECHECK reaches the sandbox env allow-list', () => {
   // extraEnv entries are raw docker-run argv pairs (see cache-injector.ts volumeMount()
   // for the same --volume convention), not bare "KEY=VALUE" strings.
-  const args = rt.sandboxArgs('apk-build-test', '/tmp/ws', ['bash', '-lc', 'npm ci && cd android && ./gradlew assembleDebug'], {
+  const args = rt.sandboxArgs('apk-build-test', '/tmp/ws', ['bash', '-c', 'npm ci && cd android && ./gradlew assembleDebug'], {
     extraEnv: ['--env', 'SKIP_GRADLE_PRECHECK=true'],
   });
   const envs = args.filter((x, i, arr) => arr[i - 1] === '--env');
   assert.ok(envs.includes('SKIP_GRADLE_PRECHECK=true'), envs.join(' '));
   // The command itself is the last three argv entries, passed through untouched.
-  assert.deepEqual(args.slice(-3), ['bash', '-lc', 'npm ci && cd android && ./gradlew assembleDebug']);
+  assert.deepEqual(args.slice(-3), ['bash', '-c', 'npm ci && cd android && ./gradlew assembleDebug']);
 });
 
 // ── Static checks on the entrypoint / Dockerfile (no execution) ─────────────

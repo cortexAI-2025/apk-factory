@@ -55,6 +55,21 @@ test('refuses ambiguous outputs rather than delivering an arbitrary module or sp
   await assert.rejects(findBuildArtifact(root, 'RELEASE'), /Multiple RELEASE artifacts/);
 });
 
+test('flutter release prefers flutter-apk when Gradle wrote an identical copy', async t => {
+  const gradle = 'build/app/outputs/apk/release/app-release.apk';
+  const flutter = 'build/app/outputs/flutter-apk/app-release.apk';
+  const root = await workspace(t, [gradle, flutter]);
+  assert.equal(await findBuildArtifact(root, 'RELEASE'), path.join(root, flutter));
+});
+
+test('flutter release still refuses a different Gradle APK with the same name', async t => {
+  const gradle = 'build/app/outputs/apk/release/app-release.apk';
+  const flutter = 'build/app/outputs/flutter-apk/app-release.apk';
+  const root = await workspace(t, [gradle, flutter]);
+  await fs.writeFile(path.join(root, gradle), 'gradle-different');
+  await assert.rejects(findBuildArtifact(root, 'RELEASE'), /Multiple RELEASE artifacts/);
+});
+
 test('ignores symlink artifacts and dependencies', async t => {
   const root = await workspace(t, ['assets/sample.apk', `node_modules/example/${release}`]);
   await fs.mkdir(path.dirname(path.join(root, release)), { recursive: true });

@@ -107,7 +107,16 @@ RUN corepack enable \
 ENV FLUTTER_HOME=/opt/flutter \
     FLUTTER_VERSION=3.50.1
 ENV PATH="/usr/local/bin:${FLUTTER_HOME}/bin:${PATH}"
-RUN printf '%s\n' '#!/bin/sh' 'exec /usr/bin/tar --no-same-owner "$@"' > /usr/local/bin/tar \
+RUN printf '%s\n' \
+      '#!/bin/sh' \
+      '# --no-same-owner must come before the operation. Traditional "tar czf" has no leading dash.' \
+      'if [ -n "$1" ] && [ "${1#-}" = "$1" ]; then' \
+      '  op=$1' \
+      '  shift' \
+      '  set -- -"$op" "$@"' \
+      'fi' \
+      'exec /usr/bin/tar --no-same-owner "$@"' \
+      > /usr/local/bin/tar \
     && chmod +x /usr/local/bin/tar \
     && git clone --depth 1 --branch ${FLUTTER_VERSION} https://github.com/flutter/flutter.git ${FLUTTER_HOME} \
     && git config --system --add safe.directory ${FLUTTER_HOME} \
