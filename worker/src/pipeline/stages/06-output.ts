@@ -10,6 +10,7 @@ import { createHash } from 'crypto';
 import { createReadStream } from 'fs';
 import { findBuildArtifact, listBuildArtifacts } from '../artifacts';
 import { SANDBOX } from '../../security/sandbox-config';
+import { signReleaseArtifact } from '../../signing/release-signing';
 
 export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', '─── Stage 6/6: OUTPUT ──────────────────────────────');
@@ -29,6 +30,15 @@ export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
   }
 
   await ctx.log('info', `APK found: ${path.relative(ctx.projectRoot, apkPath)}`);
+
+  try {
+    const signed = await signReleaseArtifact(apkPath);
+    await ctx.log('info', signed.action === 'signed'
+      ? `Signed ${ctx.buildType} with the ${signed.source === 'env' ? 'KEYSTORE_PATH' : 'factory upload'} key (outside the sandbox)`
+      : 'Artifact already carries the project signature — factory key not applied');
+  } catch (err: any) {
+    return { ok: false, fatal: true, error: `Release signing failed: ${err.message}` };
+  }
 
   // ── 2. Validate APK size ──────────────────────────────────────────────────
   const stat = await fs.stat(apkPath);

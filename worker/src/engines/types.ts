@@ -28,9 +28,12 @@ export function resolveGradleTask(buildType: PipelineContext['buildType']): stri
 }
 
 export function installCommand(pm: PackageManager): string {
+  // Prefer the lockfile. If it is missing or out of date, fall back to a
+  // resolving install so a GitHub import can still compile.
   switch (pm) {
-    case 'pnpm': return 'pnpm install --frozen-lockfile';
-    case 'yarn': return 'yarn install --frozen-lockfile';
-    default:     return 'npm ci';
+    case 'pnpm': return 'pnpm install --frozen-lockfile || pnpm install --no-frozen-lockfile';
+    case 'yarn': return 'yarn install --frozen-lockfile || yarn install';
+    default:     return 'if [ -f package-lock.json ]; then npm ci --no-audit --no-fund || npm install --no-audit --no-fund; else npm install --no-audit --no-fund; fi';
   }
 }
+

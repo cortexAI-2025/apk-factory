@@ -194,8 +194,9 @@ async function hasManifest(dir: string, depth = 0): Promise<boolean> {
 }
 
 /**
- * Finds the Android Gradle project (with wrapper) at `base` or up to two folders below it.
- * Returns the absolute project root, or throws an actionable error.
+ * Finds the project APK Factory can build at `base` or up to two folders below it:
+ * a Flutter / React Native / Expo / Capacitor / Cordova root, or a native Android
+ * Gradle project with its wrapper. Returns the absolute project root.
  */
 export async function findGradleProject(base: string): Promise<string> {
   const dirs = [base];
@@ -209,9 +210,11 @@ export async function findGradleProject(base: string): Promise<string> {
   const l1 = await level([base]); const l2 = await level(l1);
   dirs.push(...l1, ...l2);
 
+  const markers: string[] = [];
   const candidates: string[] = [];
   let sawGradle = false;
   for (const d of dirs) {
+    if (await frameworkMarker(d)) markers.push(d);
     const gradle = (await exists(path.join(d, 'settings.gradle'))) || (await exists(path.join(d, 'settings.gradle.kts'))) ||
       (await exists(path.join(d, 'build.gradle'))) || (await exists(path.join(d, 'build.gradle.kts')));
     if (gradle) sawGradle = true;
@@ -219,11 +222,46 @@ export async function findGradleProject(base: string): Promise<string> {
       (await exists(path.join(d, 'gradle/wrapper/gradle-wrapper.jar')));
     if (gradle && wrapper && (await hasManifest(d))) candidates.push(d);
   }
+
+  const top = markers.filter((d) => !markers.some((o) => o !== d && d.startsWith(o + path.sep)));
+  if (top.length > 1) {
+    const rel = top.map((c) => path.relative(base, c) || '.').join(', ');
+    return bad(`Several Android projects found (${rel}). Paste the URL of the folder, e.g. https://github.com/<owner>/<repo>/tree/<branch>/<folder>.`);
+  }
+  if (top.length === 1) {
+    const outside = candidates.filter((c) => c !== top[0] && !c.startsWith(top[0] + path.sep));
+    if (outside.length) {
+      const rel = [top[0], ...outside].map((c) => path.relative(base, c) || '.').join(', ');
+      return bad(`Several Android projects found (${rel}). Paste the URL of the folder, e.g. https://github.com/<owner>/<repo>/tree/<branch>/<folder>.`);
+    }
+    return top[0];
+  }
+
   if (candidates.length === 1) return candidates[0];
   if (candidates.length > 1) {
     const rel = candidates.map((c) => path.relative(base, c) || '.').join(', ');
     return bad(`Several Android Gradle projects found (${rel}). Paste the URL of the folder, e.g. https://github.com/<owner>/<repo>/tree/<branch>/<folder>.`);
   }
-  if (!sawGradle) return bad('No Gradle project found: the repository must contain build.gradle / settings.gradle.');
+  if (!sawGradle) return bad('No Gradle project found: the repository must contain an Android (Gradle), Flutter, React Native, Expo, Capacitor or Cordova project.');
   return bad('No complete Android Gradle project found. It needs gradlew, gradle/wrapper/gradle-wrapper.properties, gradle/wrapper/gradle-wrapper.jar and an AndroidManifest.xml.');
+}
+
+async function frameworkMarker(dir: string): Promise<boolean> {
+  if (path.basename(dir) === 'node_modules' || path.basename(dir) === 'platforms') return false;
+  if (await exists(path.join(dir, 'pubspec.yaml'))) return true;
+  if (await exists(path.join(dir, 'capacitor.config.ts')) || await exists(path.join(dir, 'capacitor.config.js')) || await exists(path.join(dir, 'capacitor.config.json'))) {
+    return true;
+  }
+  if (await exists(path.join(dir, 'config.xml'))) {
+    const xml = await fs.readFile(path.join(dir, 'config.xml'), 'utf8').catch(() => '');
+    if (/<widget[\s>]/.test(xml)) return true;
+  }
+  if (!(await exists(path.join(dir, 'package.json')))) return false;
+  try {
+    const pkg = JSON.parse(await fs.readFile(path.join(dir, 'package.json'), 'utf8'));
+    const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+    return Boolean(deps.expo || deps['react-native'] || deps['@capacitor/core'] || deps['@capacitor/android'] || deps.cordova || deps['cordova-android'] || pkg.cordova);
+  } catch {
+    return false;
+  }
 }

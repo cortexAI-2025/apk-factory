@@ -2,14 +2,11 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PipelineContext } from './types';
 
-/** Select only Gradle outputs matching the requested task, never source APKs. */
+/** Select only Gradle / Flutter outputs matching the requested task, never source APKs. */
 export async function findBuildArtifact(
   projectRoot: string,
   buildType: PipelineContext['buildType'],
 ): Promise<string | null> {
-  const extension = buildType === 'AAB' ? '.aab' : '.apk';
-  const outputKind = buildType === 'AAB' ? 'bundle' : 'apk';
-  const variant = buildType === 'DEBUG' ? 'debug' : 'release';
   const matches: string[] = [];
 
   async function walk(dir: string): Promise<void> {
@@ -17,18 +14,10 @@ export async function findBuildArtifact(
     for (const entry of entries) {
       if (['node_modules', '.git', '.gradle'].includes(entry.name)) continue;
       const full = path.join(dir, entry.name);
-      // Do not follow symbolic links from uploaded projects.
       if (entry.isDirectory()) {
         await walk(full);
-      } else if (entry.isFile() && entry.name.endsWith(extension)) {
-        const relative = path.relative(projectRoot, full).split(path.sep);
-        const outputIndex = relative.findIndex((part, i) =>
-          part === 'build' && relative[i + 1] === 'outputs' && relative[i + 2] === outputKind,
-        );
-        if (outputIndex < 0) continue;
-        const variants = relative.slice(outputIndex + 3, -1);
-        // Supports debug/release and flavor variants such as freeRelease.
-        if (variants.some((part) => part.toLowerCase().endsWith(variant))) matches.push(full);
+      } else if (entry.isFile() && matchesRequestedOutput(path.relative(projectRoot, full).split(path.sep), entry.name, buildType)) {
+        matches.push(full);
       }
     }
   }
@@ -39,6 +28,40 @@ export async function findBuildArtifact(
     throw new Error(`Multiple ${buildType} artifacts found; cannot choose safely: ${matches.map((file) => path.relative(projectRoot, file)).join(', ')}`);
   }
   return matches[0] ?? null;
+}
+
+function matchesRequestedOutput(
+  relative: string[],
+  fileName: string,
+  buildType: PipelineContext['buildType'],
+): boolean {
+  const wantAab = buildType === 'AAB';
+  const variant = buildType === 'DEBUG' ? 'debug' : 'release';
+  if (wantAab ? !fileName.endsWith('.aab') : !fileName.endsWith('.apk')) return false;
+  const located = locateOutput(relative);
+  if (!located) return false;
+  if (wantAab) {
+    return located.kind === 'bundle' && located.variants.some((part) => part.toLowerCase().endsWith('release'));
+  }
+  if (located.kind === 'apk') {
+    return located.variants.some((part) => part.toLowerCase().endsWith(variant));
+  }
+  return fileName.toLowerCase().includes(`-${variant}`);
+}
+
+function locateOutput(relative: string[]): { kind: string; variants: string[]; buildIndex: number } | null {
+  const idx = relative.findIndex((part, i) =>
+    part === 'outputs'
+    && (relative[i + 1] === 'apk' || relative[i + 1] === 'bundle' || relative[i + 1] === 'flutter-apk')
+    && relative.slice(0, i).includes('build'),
+  );
+  if (idx < 0) return null;
+  const buildIndex = relative.lastIndexOf('build', idx);
+  return {
+    kind: relative[idx + 1],
+    variants: relative.slice(idx + 2, -1),
+    buildIndex,
+  };
 }
 
 // ── Debug APK discovery with variants (V1) ─────────────────────────────────
@@ -73,18 +96,26 @@ export async function listBuildArtifacts(projectRoot: string): Promise<BuiltArti
         await walk(full);
       } else if (entry.isFile() && entry.name.endsWith('.apk')) {
         const rel = path.relative(projectRoot, full).split(path.sep);
-        const buildIdx = rel.findIndex((p, i) => p === 'build' && rel[i + 1] === 'outputs' && rel[i + 2] === 'apk');
-        if (buildIdx < 0) continue;
-        const variantDirs = rel.slice(buildIdx + 3, -1);
-        if (variantDirs.length === 0 || variantDirs.some((p) => /androidTest/i.test(p))) continue;
-        if (!variantDirs[variantDirs.length - 1].toLowerCase().endsWith('debug')) continue;
-        const variant = variantDirs
-          .map((p, i) => (i === 0 ? p : p.charAt(0).toUpperCase() + p.slice(1)))
-          .join('');
+        const located = locateOutput(rel);
+        if (!located || (located.kind !== 'apk' && located.kind !== 'flutter-apk')) continue;
+        if (located.kind === 'apk') {
+          if (located.variants.length === 0 || located.variants.some((p) => /androidTest/i.test(p))) continue;
+          if (!located.variants[located.variants.length - 1].toLowerCase().endsWith('debug')) continue;
+        } else if (!entry.name.toLowerCase().includes('-debug')) {
+          continue;
+        }
+        const variant = located.kind === 'flutter-apk'
+          ? 'debug'
+          : located.variants
+            .map((p, i) => (i === 0 ? p : p.charAt(0).toUpperCase() + p.slice(1)))
+            .join('');
+        const module = located.kind === 'flutter-apk'
+          ? 'app'
+          : (rel.slice(0, located.buildIndex).join('/') || '.');
         found.push({
           file: full,
           fileName: entry.name,
-          module: rel.slice(0, buildIdx).join('/') || '.',
+          module,
           variant,
           abi: (entry.name.match(ABI_RE) || [, 'universal'])[1] as string,
           recommended: false,

@@ -72,6 +72,26 @@ test('rejects an archive without any Gradle build file', async (t) => {
   const f = make(t, [{ name: 'readme.txt' }]);
   await rejects(inspectZip(f, head(f)), /No Gradle project/);
 });
+
+test('accepts a Flutter project that has no Gradle wrapper yet', async (t) => {
+  const f = make(t, [
+    { name: 'App/pubspec.yaml', data: 'name: demo\n' },
+    { name: 'App/lib/main.dart', data: 'void main() {}' },
+  ]);
+  assert.equal((await inspectZip(f, head(f))).rootPrefix, 'App/');
+});
+
+test('a Flutter repo ZIP is rooted at pubspec.yaml, not at android/', async (t) => {
+  const f = make(t, [
+    { name: 'demo/pubspec.yaml', data: 'name: demo\n' },
+    { name: 'demo/android/gradlew', mode: 0o100755 },
+    { name: 'demo/android/gradle/wrapper/gradle-wrapper.properties' },
+    { name: 'demo/android/gradle/wrapper/gradle-wrapper.jar' },
+    { name: 'demo/android/settings.gradle' },
+    { name: 'demo/android/app/src/main/AndroidManifest.xml', data: '<manifest/>' },
+  ]);
+  assert.equal((await inspectZip(f, head(f))).rootPrefix, 'demo/');
+});
 test('rejects a Gradle project that is not Android', async (t) => {
   const f = make(t, project().filter((e) => !e.name.endsWith('AndroidManifest.xml')));
   await rejects(inspectZip(f, head(f)), /AndroidManifest/);

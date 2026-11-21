@@ -1,10 +1,13 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs/promises');
+const { execFile } = require('node:child_process');
+const { promisify } = require('node:util');
 const os = require('node:os');
 const path = require('node:path');
 const { findBuildArtifact } = require('../dist/pipeline/artifacts');
 const { stageOutput } = require('../dist/pipeline/stages/06-output');
+const execFileAsync = promisify(execFile);
 
 async function workspace(t, files) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'apk-artifacts-'));
@@ -38,6 +41,15 @@ test('supports a custom module and flavored release output', async t => {
   assert.equal(await findBuildArtifact(root, 'RELEASE'), path.join(root, file));
 });
 
+test('finds a Flutter APK and AAB outside the Gradle apk/ folder', async t => {
+  const apk = 'build/app/outputs/flutter-apk/app-debug.apk';
+  const aab = 'build/app/outputs/bundle/release/app-release.aab';
+  const root = await workspace(t, [apk, aab]);
+  assert.equal(await findBuildArtifact(root, 'DEBUG'), path.join(root, apk));
+  assert.equal(await findBuildArtifact(root, 'AAB'), path.join(root, aab));
+  assert.equal(await findBuildArtifact(root, 'RELEASE'), null);
+});
+
 test('refuses ambiguous outputs rather than delivering an arbitrary module or split', async t => {
   const root = await workspace(t, [release, 'other/build/outputs/apk/release/other-release.apk']);
   await assert.rejects(findBuildArtifact(root, 'RELEASE'), /Multiple RELEASE artifacts/);
@@ -50,8 +62,30 @@ test('ignores symlink artifacts and dependencies', async t => {
   assert.equal(await findBuildArtifact(root, 'RELEASE'), null);
 });
 
-test('output stage uploads the AAB and records its URL and size', async t => {
-  const root = await workspace(t, [debug, bundle]);
+test('output stage signs an unsigned AAB outside the project, then uploads it', async t => {
+  const keyDir = await fs.mkdtemp(path.join(os.tmpdir(), 'apk-keys-'));
+  const prevDir = process.env.APK_FACTORY_KEY_DIR;
+  const prevKs = process.env.KEYSTORE_PATH;
+  const prevPass = process.env.KEYSTORE_PASSWORD;
+  process.env.APK_FACTORY_KEY_DIR = keyDir;
+  delete process.env.KEYSTORE_PATH;
+  delete process.env.KEYSTORE_PASSWORD;
+  t.after(async () => {
+    if (prevDir === undefined) delete process.env.APK_FACTORY_KEY_DIR;
+    else process.env.APK_FACTORY_KEY_DIR = prevDir;
+    if (prevKs === undefined) delete process.env.KEYSTORE_PATH;
+    else process.env.KEYSTORE_PATH = prevKs;
+    if (prevPass === undefined) delete process.env.KEYSTORE_PASSWORD;
+    else process.env.KEYSTORE_PASSWORD = prevPass;
+    await fs.rm(keyDir, { recursive: true, force: true });
+  });
+
+  const root = await workspace(t, [debug]);
+  const aab = path.join(root, bundle);
+  await fs.mkdir(path.dirname(aab), { recursive: true });
+  await fs.writeFile(path.join(root, 'payload.txt'), 'bundle');
+  await execFileAsync('jar', ['cf', aab, '-C', root, 'payload.txt']);
+
   let uploaded;
   const ctx = {
     projectRoot: root, buildType: 'AAB', workspaceDir: root, sourceRepoPath: root,
@@ -62,9 +96,16 @@ test('output stage uploads the AAB and records its URL and size', async t => {
     },
   };
   assert.deepEqual(await stageOutput(ctx), { ok: true });
-  assert.equal(uploaded, path.join(root, bundle));
+  assert.equal(uploaded, aab);
   assert.equal(ctx.apkUrl, 'https://example.test/build.aab');
-  assert.equal(ctx.apkSize, Buffer.byteLength('test artifact'));
+  const size = (await fs.stat(aab)).size;
+  assert.equal(ctx.apkSize, size);
+  assert.ok(size > Buffer.byteLength('bundle'));
+  await assert.rejects(
+    execFileAsync('jarsigner', ['-verify', '-strict', aab], { encoding: 'utf8' }),
+    (err) => err.code !== 16 && /jar verified/.test(err.stdout || ''),
+  );
+  assert.equal(await fs.access(path.join(root, '.apk-factory')).then(() => true, () => false), false);
 });
 
 test('output stage fails without uploading when the requested artifact is missing', async t => {

@@ -18,10 +18,11 @@ const ENGINE_SUPPORTED: Record<Framework, boolean> = {
   REACT_NATIVE_CLI: true,
   EXPO_MANAGED: true,
   EXPO_BARE: true,
-  CAPACITOR: false,
+  CAPACITOR: true,
+  CORDOVA: true,
   VITE_WEB: false,
   NEXTJS_WEB: false,
-  FLUTTER: false,
+  FLUTTER: true,
   UNKNOWN: false,
 };
 
@@ -53,6 +54,10 @@ export async function stageDetect(ctx: PipelineContext): Promise<StageResult> {
   if (result.versions.reactNative) await ctx.log('info', `React Native     : ${result.versions.reactNative}`);
   if (result.versions.expoSdk)   await ctx.log('info', `Expo             : ${result.versions.expoSdk}`);
   if (result.versions.node)      await ctx.log('info', `Node (declared)  : ${result.versions.node}`);
+  if (result.versions.capacitorCore) await ctx.log('info', `Capacitor        : ${result.versions.capacitorCore}`);
+  if (result.versions.cordovaAndroid) await ctx.log('info', `Cordova Android  : ${result.versions.cordovaAndroid}`);
+  if (result.versions.nativeLanguage) await ctx.log('info', `Native language  : ${result.versions.nativeLanguage}`);
+  if (result.versions.flutter) await ctx.log('info', `Flutter SDK      : ${result.versions.flutter}`);
 
   for (const signal of ctx.frameworkSignals) await ctx.log('debug', `  signal: ${signal}`);
 
@@ -63,9 +68,7 @@ export async function stageDetect(ctx: PipelineContext): Promise<StageResult> {
 
   // ── Unsupported framework (detected, but no engine yet) ───────────────────
   if (!ENGINE_SUPPORTED[result.framework]) {
-    const reason = result.framework === 'UNKNOWN'
-      ? 'Could not identify a supported framework (no package.json, no Gradle build file, no pubspec.yaml).'
-      : `${result.framework} is detected but not yet supported by a build engine.`;
+    const reason = unsupportedReason(result.framework);
     await ctx.log('error', reason);
     return { ok: false, fatal: true, error: reason };
   }
@@ -83,4 +86,17 @@ export async function stageDetect(ctx: PipelineContext): Promise<StageResult> {
   }
 
   return { ok: true };
+}
+
+function unsupportedReason(framework: Framework): string {
+  switch (framework) {
+    case 'UNKNOWN':
+      return 'Could not identify a supported framework (Android Gradle, Flutter, React Native, Expo, Capacitor or Cordova).';
+    case 'VITE_WEB':
+      return 'VITE_WEB is a website, not an Android project. Add Capacitor (capacitor.config and @capacitor/android) to produce an APK.';
+    case 'NEXTJS_WEB':
+      return 'NEXTJS_WEB cannot be compiled to Android. Use a static export plus Capacitor, or import the Android project itself.';
+    default:
+      return `${framework} is detected but not yet supported by a build engine.`;
+  }
 }

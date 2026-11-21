@@ -18,10 +18,92 @@ const JS_FRAMEWORKS = new Set(['REACT_NATIVE_CLI', 'EXPO_MANAGED', 'EXPO_BARE'])
 export async function stageValidate(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', '─── Stage 3/6: VALIDATE ────────────────────────────');
 
-  if (ctx.framework && JS_FRAMEWORKS.has(ctx.framework)) {
-    return stageValidateJs(ctx);
-  }
+  if (ctx.framework === 'FLUTTER') return stageValidateFlutter(ctx);
+  if (ctx.framework === 'CAPACITOR') return stageValidateCapacitor(ctx);
+  if (ctx.framework === 'CORDOVA') return stageValidateCordova(ctx);
+  if (ctx.framework && JS_FRAMEWORKS.has(ctx.framework)) return stageValidateJs(ctx);
   return stageValidateAndroidNative(ctx);
+}
+
+async function stageValidateFlutter(ctx: PipelineContext): Promise<StageResult> {
+  const root = ctx.projectRoot;
+  try {
+    await fs.access(path.join(root, 'pubspec.yaml'));
+    await ctx.log('info', '✓ pubspec.yaml found');
+  } catch {
+    return { ok: false, fatal: true, error: 'pubspec.yaml not found — not a Flutter project' };
+  }
+  try {
+    await fs.access(path.join(root, 'android', 'gradlew'));
+    await ctx.log('info', '✓ android/gradlew found');
+  } catch {
+    await ctx.log('info', 'android/ not generated yet — flutter create will add it during BUILD');
+  }
+  ctx.gradleCommand = resolveGradleCommand(ctx.buildType, true);
+  await ctx.log('info', `Validation passed — Flutter will run: ${ctx.buildType}`);
+  return { ok: true };
+}
+
+async function stageValidateCapacitor(ctx: PipelineContext): Promise<StageResult> {
+  const root = ctx.projectRoot;
+  const errors: string[] = [];
+  try {
+    await fs.access(path.join(root, 'package.json'));
+    await ctx.log('info', '✓ package.json found');
+  } catch {
+    errors.push('package.json not found at project root');
+  }
+  const config = ['capacitor.config.ts', 'capacitor.config.js', 'capacitor.config.json'];
+  let found = false;
+  for (const name of config) {
+    try {
+      await fs.access(path.join(root, name));
+      found = true;
+      await ctx.log('info', `✓ ${name} found`);
+      break;
+    } catch { /* next */ }
+  }
+  if (!found) errors.push('capacitor.config.ts/js/json not found');
+  await warnIfLockfileMissing(ctx, root);
+  if (errors.length) return { ok: false, fatal: true, error: errors.join('; ') };
+  ctx.gradleCommand = resolveGradleCommand(ctx.buildType, true);
+  await ctx.log('info', `Validation passed — Capacitor Gradle task from ${ctx.gradleRoot || 'android'}/`);
+  return { ok: true };
+}
+
+async function stageValidateCordova(ctx: PipelineContext): Promise<StageResult> {
+  const root = ctx.projectRoot;
+  try {
+    const xml = await fs.readFile(path.join(root, 'config.xml'), 'utf-8');
+    if (!/<widget[\s>]/.test(xml)) {
+      return { ok: false, fatal: true, error: 'config.xml does not contain a Cordova <widget>' };
+    }
+    await ctx.log('info', '✓ config.xml Cordova widget found');
+  } catch {
+    return { ok: false, fatal: true, error: 'config.xml not found — not a Cordova project' };
+  }
+  try {
+    await fs.access(path.join(root, 'package.json'));
+    await ctx.log('info', '✓ package.json found');
+  } catch {
+    await ctx.log('warn', '⚠ package.json missing — cordova platform add may fail without a local CLI');
+  }
+  await warnIfLockfileMissing(ctx, root);
+  ctx.gradleCommand = resolveGradleCommand(ctx.buildType, true);
+  await ctx.log('info', 'Validation passed — Cordova Android build');
+  return { ok: true };
+}
+
+async function warnIfLockfileMissing(ctx: PipelineContext, root: string): Promise<void> {
+  const lockfiles: Record<string, string> = { npm: 'package-lock.json', yarn: 'yarn.lock', pnpm: 'pnpm-lock.yaml' };
+  const expected = ctx.packageManager ? lockfiles[ctx.packageManager] : undefined;
+  if (!expected) return;
+  try {
+    await fs.access(path.join(root, expected));
+    await ctx.log('info', `✓ ${expected} found`);
+  } catch {
+    await ctx.log('warn', `⚠ ${expected} missing — dependencies will be resolved with a non-frozen install`);
+  }
 }
 
 /**

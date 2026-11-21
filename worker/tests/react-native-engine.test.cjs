@@ -53,8 +53,17 @@ test('engine-factory: Android Native and undefined both resolve to the untouched
   }
 });
 
-test('engine-factory: CAPACITOR has no engine yet and fails loudly, never silently', () => {
-  assert.throws(() => getEngine('CAPACITOR'), /No build engine implemented/);
+test('engine-factory: CAPACITOR, CORDOVA and FLUTTER each have a shell engine', () => {
+  const cap = getEngine('CAPACITOR').composeCommand({ buildType: 'RELEASE', packageManager: 'npm', gradleRoot: 'android', buildSystemInfo: { androidGenerated: true } });
+  assert.equal(cap.shell, true);
+  assert.match(cap.command, /npx cap sync android/);
+  assert.match(cap.command, /assembleRelease/);
+  const cordova = getEngine('CORDOVA').composeCommand({ buildType: 'AAB', packageManager: 'npm' });
+  assert.match(cordova.command, /cordova platform add android/);
+  assert.match(cordova.command, /--packageType=bundle/);
+  const flutter = getEngine('FLUTTER').composeCommand({ buildType: 'DEBUG' });
+  assert.match(flutter.command, /flutter build apk --debug/);
+  assert.match(flutter.command, /android-arm,android-arm64,android-x64/);
 });
 
 // ── Pipeline integration (real stages, no Docker) ───────────────────────────

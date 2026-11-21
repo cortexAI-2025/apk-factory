@@ -158,11 +158,39 @@ test('Next.js without output:export is flagged as default (SSR, not static-expor
 // ── Flutter — detection only ─────────────────────────────────────────────────
 
 test('Flutter is detected from pubspec.yaml with maximum confidence', async (t) => {
-  const root = await project(t, { 'pubspec.yaml': 'name: demo\n' });
+  const root = await project(t, { 'pubspec.yaml': 'name: demo\ndependencies:\n  flutter:\n    sdk: flutter\n' });
   const r = await detectFramework(root);
   assert.equal(r.framework, 'FLUTTER');
   assert.equal(r.confidence, 1);
+  assert.equal(r.versions.flutter, 'sdk');
   assert.equal(mapFrameworkToProjectType(r.framework), 'FLUTTER');
+});
+
+test('Kotlin and Java native projects stay ANDROID_NATIVE and record the language', async (t) => {
+  const kotlin = await project(t, {
+    'settings.gradle': 'include ":app"',
+    'app/build.gradle': 'plugins { id "com.android.application" }\nandroid { compileSdk 34 }',
+    'app/src/main/kotlin/com/example/MainActivity.kt': 'class MainActivity',
+  });
+  const java = await project(t, {
+    'settings.gradle': 'include ":app"',
+    'app/build.gradle': 'plugins { id "com.android.application" }\nandroid { compileSdk 34 }',
+    'app/src/main/java/com/example/MainActivity.java': 'class MainActivity {}',
+  });
+  assert.equal((await detectFramework(kotlin)).framework, 'ANDROID_NATIVE');
+  assert.equal((await detectFramework(kotlin)).versions.nativeLanguage, 'kotlin');
+  assert.equal((await detectFramework(java)).versions.nativeLanguage, 'java');
+});
+
+test('Cordova is detected from config.xml and is not confused with Capacitor', async (t) => {
+  const root = await project(t, {
+    'config.xml': '<widget id="com.example.app" version="1.0.0"></widget>',
+    'package.json': JSON.stringify({ dependencies: { 'cordova-android': '13.0.0' } }),
+  });
+  const r = await detectFramework(root);
+  assert.equal(r.framework, 'CORDOVA');
+  assert.equal(mapFrameworkToProjectType(r.framework), 'ANDROID_NATIVE');
+  assert.equal(r.versions.cordovaAndroid, '13.0.0');
 });
 
 // ── Unknown / ambiguous ──────────────────────────────────────────────────────

@@ -101,6 +101,23 @@ RUN corepack enable \
     && corepack prepare pnpm@9.12.3 --activate \
     && corepack prepare yarn@1.22.22 --activate
 
+# ── Flutter SDK (stable 3.50.1, precached for Android) ───────────────────────
+# The sandbox root filesystem is read-only at build time, so the engine stamp
+# script must exit when bin/cache is not writable and the stamp already exists.
+ENV FLUTTER_HOME=/opt/flutter \
+    FLUTTER_VERSION=3.50.1
+ENV PATH="/usr/local/bin:${FLUTTER_HOME}/bin:${PATH}"
+RUN printf '%s\n' '#!/bin/sh' 'exec /usr/bin/tar --no-same-owner "$@"' > /usr/local/bin/tar \
+    && chmod +x /usr/local/bin/tar \
+    && git clone --depth 1 --branch ${FLUTTER_VERSION} https://github.com/flutter/flutter.git ${FLUTTER_HOME} \
+    && git config --system --add safe.directory ${FLUTTER_HOME} \
+    && ${FLUTTER_HOME}/bin/flutter config --no-analytics --no-cli-animations \
+    && ${FLUTTER_HOME}/bin/flutter precache --android
+COPY docker/android-builder/patch-flutter-readonly.js /tmp/patch-flutter-readonly.js
+RUN node /tmp/patch-flutter-readonly.js \
+    && rm /tmp/patch-flutter-readonly.js \
+    && chmod -R a+rX ${FLUTTER_HOME}
+
 # ── Non-root user ─────────────────────────────────────────────────────────────
 RUN groupadd -g 1000 builder \
     && useradd -u 1000 -g builder -m -s /bin/bash builder \

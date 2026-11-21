@@ -203,7 +203,7 @@ function ProjectCard({ project }: { project: Project }) {
                 {project.name}
               </h3>
               <p className="text-gray-500 text-xs">
-                {project.projectType.replace('_', ' ')} · {project._count?.builds || 0} builds
+                {(project.metadata?.framework || project.projectType).replace(/_/g, ' ')} · {project._count?.builds || 0} builds
               </p>
             </div>
           </div>
@@ -296,7 +296,7 @@ export default function DashboardPage() {
             <h1 className="text-2xl font-bold text-white">
               Welcome back{user?.name ? `, ${user.name.split(' ')[0]}` : ''}
             </h1>
-            <p className="text-gray-400 mt-1">Build, fix and ship Android APKs</p>
+            <p className="text-gray-400 mt-1">Java, Kotlin, Flutter, React Native, Expo, Capacitor, Cordova — APK and AAB</p>
           </div>
           <button
             onClick={() => openModal('github')}

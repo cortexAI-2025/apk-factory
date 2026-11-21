@@ -91,6 +91,23 @@ test('missing wrapper and non-gradle repositories give distinct messages', async
   const none = await clone(t, repo(t, { 'README.md': 'hello' }));
   await assert.rejects(R.findGradleProject(none), /No Gradle project found/);
 });
+
+test('a Flutter repository is imported from pubspec.yaml, not from android/', async (t) => {
+  const dest = await clone(t, repo(t, {
+    'pubspec.yaml': 'name: demo\n',
+    'lib/main.dart': 'void main() {}',
+    ...project('android/'),
+  }));
+  assert.equal(await R.findGradleProject(dest), dest);
+});
+
+test('an Expo managed repository without android/ is accepted', async (t) => {
+  const dest = await clone(t, repo(t, {
+    'package.json': JSON.stringify({ dependencies: { expo: '~51.0.0' } }),
+    'app.json': JSON.stringify({ expo: { name: 'demo' } }),
+  }));
+  assert.equal(await R.findGradleProject(dest), dest);
+});
 test('repositories containing symbolic links are refused', async (t) => {
   const url = repo(t, project(), (d) => fs.symlinkSync('/etc/passwd', path.join(d, 'passwd-link')));
   const dest = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'clone-')), 'src');

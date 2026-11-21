@@ -77,6 +77,12 @@ export async function detectFramework(root: string): Promise<DetectionResult> {
   if (deps['@capacitor/core']) add('CAPACITOR', 5, `package.json dependency: @capacitor/core@${deps['@capacitor/core']}`);
   if (deps['@capacitor/android']) add('CAPACITOR', 4, `package.json dependency: @capacitor/android@${deps['@capacitor/android']}`);
 
+  // ── Cordova (and Ionic-Cordova) ──────────────────────────────────────────
+  const configXml = await readFileIfExists(path.join(root, 'config.xml'));
+  if (configXml && /<widget[\s>]/.test(configXml)) add('CORDOVA', 10, 'config.xml is a Cordova widget');
+  if (deps['cordova'] || deps['cordova-android']) add('CORDOVA', 6, 'package.json dependency: cordova / cordova-android');
+  if (await exists(path.join(root, 'platforms', 'android'))) add('CORDOVA', 3, 'platforms/android present');
+
   // ── Expo ─────────────────────────────────────────────────────────────────
   let expoAppJsonConfig: any = null;
   const appJsonRaw = await readFileIfExists(path.join(root, 'app.json'));
@@ -148,6 +154,9 @@ export async function detectFramework(root: string): Promise<DetectionResult> {
 
   const packageManager = await detectPackageManager(root, pkg);
   const versions = await detectVersions(root, pkg, deps, framework);
+  if (framework === 'ANDROID_NATIVE') {
+    versions.nativeLanguage = await detectNativeLanguage(root);
+  }
   const gradleRoot = await resolveGradleRoot(root, framework);
   const buildSystem = {
     hasGradleWrapper: gradleRoot !== null,
@@ -185,6 +194,29 @@ async function detectAndroidNative(root: string): Promise<{ found: boolean; sour
     return { found: true, source: 'settings.gradle(.kts) declares included modules', hasWrapper };
   }
   return { found: false, source: '', hasWrapper: false };
+}
+
+async function detectNativeLanguage(root: string): Promise<'kotlin' | 'java' | 'mixed' | undefined> {
+  let kt = 0;
+  let java = 0;
+  const dirs = [path.join(root, 'app', 'src'), path.join(root, 'src')];
+  async function walk(dir: string, depth: number): Promise<void> {
+    if (depth > 6 || kt + java > 500) return;
+    let entries;
+    try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return; }
+    for (const entry of entries) {
+      if (entry.name === 'build' || entry.name === 'test' || entry.name === 'androidTest') continue;
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) await walk(full, depth + 1);
+      else if (entry.name.endsWith('.kt')) kt++;
+      else if (entry.name.endsWith('.java')) java++;
+    }
+  }
+  for (const dir of dirs) await walk(dir, 0);
+  if (kt && java) return 'mixed';
+  if (kt) return 'kotlin';
+  if (java) return 'java';
+  return undefined;
 }
 
 /** Directory (relative to root) containing gradlew, or null if none is found. */
@@ -230,6 +262,14 @@ async function detectVersions(
   if (deps['vite']) versions.vite = deps['vite'];
   if (deps['@capacitor/core']) versions.capacitorCore = deps['@capacitor/core'];
   if (deps['@capacitor/android']) versions.capacitorAndroid = deps['@capacitor/android'];
+  if (deps['cordova-android']) versions.cordovaAndroid = deps['cordova-android'];
+  const ionic = deps['@ionic/angular'] || deps['@ionic/react'] || deps['@ionic/vue'] || deps['@ionic/core'];
+  if (ionic) versions.ionic = ionic;
+
+  if (framework === 'FLUTTER') {
+    const pubspec = await readFileIfExists(path.join(root, 'pubspec.yaml'));
+    if (pubspec && /sdk:\s*flutter/.test(pubspec)) versions.flutter = 'sdk';
+  }
 
   if (framework === 'NEXTJS_WEB') {
     versions.nextOutputMode = await detectNextOutputMode(root);
@@ -319,7 +359,9 @@ async function extractGradleVersions(gradleRoot: string, versions: FrameworkVers
  */
 export function mapFrameworkToProjectType(framework: Framework): 'ANDROID_NATIVE' | 'FLUTTER' | 'REACT_NATIVE' | 'UNKNOWN' {
   switch (framework) {
-    case 'ANDROID_NATIVE': return 'ANDROID_NATIVE';
+    case 'ANDROID_NATIVE':
+    case 'CAPACITOR':
+    case 'CORDOVA': return 'ANDROID_NATIVE';
     case 'FLUTTER': return 'FLUTTER';
     case 'REACT_NATIVE_CLI':
     case 'EXPO_MANAGED':

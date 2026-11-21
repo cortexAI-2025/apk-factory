@@ -1,10 +1,10 @@
 # APK Factory
 
-> **ZIP / GitHub / AI → APK in 1 click**
+> **ZIP / GitHub → APK or AAB**
 
-A production-ready SaaS platform that automatically builds, fixes and packages Android projects into installable APKs — no Android Studio required.
+A production-ready platform that builds Android projects into installable APKs and Play App Bundles — no Android Studio required.
 
----
+**Stacks:** Java, Kotlin, Flutter, React Native CLI, Expo (prebuild, no EAS), Capacitor (including Ionic), Cordova. Import a public GitHub repository or a ZIP, pick Debug APK, Release APK or AAB, and download the artifact. Release builds are signed with `KEYSTORE_*` or with the factory upload key.
 
 > **V1 demo (ZIP → debug APK):** see [docs/V1-DEMO.md](docs/V1-DEMO.md) for the replay steps, the CI checks and the known limits.
 

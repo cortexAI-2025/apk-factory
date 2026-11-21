@@ -207,7 +207,7 @@ export default function ProjectPage() {
               </h2>
               <div className="space-y-3">
                 {[
-                  { label: 'Type', value: project.projectType.replace('_', ' ') },
+                  { label: 'Type', value: (project.metadata?.framework || project.projectType).replace(/_/g, ' ') },
                   { label: 'Source', value: project.sourceType.replace('_', ' ') },
                   { label: 'Gradle', value: project.gradleVersion || 'Unknown' },
                   { label: 'SDK', value: project.sdkVersion ? `API ${project.sdkVersion}` : 'Unknown' },

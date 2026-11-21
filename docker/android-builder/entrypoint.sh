@@ -46,6 +46,13 @@ export ANDROID_USER_HOME="${ANDROID_USER_HOME:-/tmp/android}"   # debug.keystore
 mkdir -p "${HOME}" "${ANDROID_USER_HOME}"
 export GRADLE_USER_HOME="/tmp/gradle-home"
 mkdir -p "${GRADLE_USER_HOME}"
+if [ -x /opt/flutter/bin/flutter ]; then
+    export FLUTTER_HOME="${FLUTTER_HOME:-/opt/flutter}"
+    export PATH="${FLUTTER_HOME}/bin:${PATH}"
+    export PUB_CACHE="${PUB_CACHE:-/tmp/pub-cache}"
+    mkdir -p "${PUB_CACHE}" "${HOME}/.config" "${HOME}/.flutter"
+    echo "[entrypoint] Flutter   : ${FLUTTER_HOME}"
+fi
 
 # ── Egress proxy (BUILD_NETWORK_MODE=restricted) ─────────────────────────────
 if [ -n "${BUILD_PROXY_HOST:-}" ]; then
