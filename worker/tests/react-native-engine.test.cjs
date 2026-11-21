@@ -66,6 +66,59 @@ test('engine-factory: CAPACITOR, CORDOVA and FLUTTER each have a shell engine', 
   assert.match(flutter.command, /android-arm,android-arm64,android-x64/);
   assert.match(flutter.command, /node -e /);
   assert.match(flutter.command, /MaxMetaspaceSize=768m/);
+  assert.doesNotMatch(flutter.command, /removed template debug signing/);
+});
+
+test('flutter release strips the template debug key and leaves a real release keystore alone', () => {
+  const { execFileSync } = require('node:child_process');
+  const fss = require('node:fs');
+  const { flutterEngine, stripFlutterTemplateDebugSigning } = require('../dist/engines/flutter.engine');
+  const root = fss.mkdtempSync(path.join(os.tmpdir(), 'flutter-sign-'));
+  const gradle = path.join(root, 'android', 'app', 'build.gradle.kts');
+  fss.mkdirSync(path.dirname(gradle), { recursive: true });
+  const template = [
+    '    buildTypes {',
+    '        release {',
+    '            // Signing with the debug keys for now, so `flutter run --release` works.',
+    '            signingConfig = signingConfigs.getByName("debug")',
+    '        }',
+    '    }',
+    '',
+  ].join('\n');
+  fss.writeFileSync(gradle, template);
+  assert.equal(stripFlutterTemplateDebugSigning(root), true);
+  const stripped = fss.readFileSync(gradle, 'utf8');
+  assert.doesNotMatch(stripped, /signingConfigs\.getByName\("debug"\)/);
+  assert.match(stripped, /buildTypes/);
+
+  const groovy = path.join(root, 'android', 'app', 'build.gradle');
+  fss.writeFileSync(groovy, 'buildTypes {\n    release {\n        signingConfig signingConfigs.debug\n    }\n}\n');
+  fss.writeFileSync(gradle, template);
+  assert.equal(stripFlutterTemplateDebugSigning(root), true);
+  assert.doesNotMatch(fss.readFileSync(groovy, 'utf8'), /signingConfigs\.debug/);
+
+  const owned = [
+    'signingConfigs { release { storeFile = file("upload.jks") } }',
+    'buildTypes { release { signingConfig = signingConfigs.getByName("debug") } }',
+    '',
+  ].join('\n');
+  fss.writeFileSync(gradle, owned);
+  assert.equal(stripFlutterTemplateDebugSigning(root), false);
+  assert.equal(fss.readFileSync(gradle, 'utf8'), owned);
+
+  const release = flutterEngine.composeCommand({ buildType: 'RELEASE' }).command;
+  assert.match(release, /flutter build apk --release/);
+  assert.match(release, /removed template debug signing/);
+  const stripLine = release.split('\n').find((line) => line.includes('removed template debug signing'));
+  const src = JSON.parse(stripLine.slice('node -e '.length));
+  const shellRoot = fss.mkdtempSync(path.join(os.tmpdir(), 'flutter-sign-shell-'));
+  const shellGradle = path.join(shellRoot, 'android', 'app', 'build.gradle.kts');
+  fss.mkdirSync(path.dirname(shellGradle), { recursive: true });
+  fss.writeFileSync(shellGradle, template);
+  execFileSync(process.execPath, ['-e', src], { cwd: shellRoot });
+  assert.doesNotMatch(fss.readFileSync(shellGradle, 'utf8'), /getByName\("debug"\)/);
+  fss.rmSync(root, { recursive: true, force: true });
+  fss.rmSync(shellRoot, { recursive: true, force: true });
 });
 
 test('flutter engine caps the template 8G heap on the workspace copy only', () => {

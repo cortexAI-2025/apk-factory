@@ -130,13 +130,22 @@ export async function detectFramework(root: string): Promise<DetectionResult> {
   }
 
   // Disambiguate Expo managed vs bare: the dependency signal always fires as
-  // EXPO_MANAGED; flip to EXPO_BARE once a real native android/ project exists.
+  // EXPO_MANAGED. Once a real native android/ project exists, that score
+  // belongs to EXPO_BARE. Leaving it on EXPO_MANAGED made the winner look
+  // tied with itself (confidence 0, "Ambiguous with EXPO_MANAGED").
   const androidAppGradle = await firstExisting(root, [
     path.join('android', 'app', 'build.gradle'),
     path.join('android', 'app', 'build.gradle.kts'),
   ]);
   if (framework === 'EXPO_MANAGED' && androidAppGradle) {
+    const managed = scores.get('EXPO_MANAGED') || 0;
+    scores.set('EXPO_BARE', (scores.get('EXPO_BARE') || 0) + managed);
+    scores.delete('EXPO_MANAGED');
+    for (const signal of signals) {
+      if (signal.framework === 'EXPO_MANAGED') signal.framework = 'EXPO_BARE';
+    }
     framework = 'EXPO_BARE';
+    topScore = scores.get('EXPO_BARE') || topScore;
   }
 
   const ambiguousWith: Framework[] = [];

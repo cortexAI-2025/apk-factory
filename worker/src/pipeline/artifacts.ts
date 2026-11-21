@@ -34,8 +34,10 @@ export async function findBuildArtifact(
 
 /**
  * `flutter build apk` writes the same bytes to outputs/flutter-apk and to
- * outputs/apk. Those two paths are one artifact. Two different modules, or
- * two files that are not byte-identical, stay ambiguous.
+ * outputs/apk. A release build names the Gradle copy app-release-unsigned.apk
+ * and the Flutter copy app-release.apk. Those two paths are one artifact when
+ * the bytes match. Two different modules, or two files that are not
+ * byte-identical, stay ambiguous.
  */
 async function collapseIdenticalFlutterCopy(matches: string[]): Promise<string[]> {
   const flutter = matches.filter((file) => file.split(path.sep).includes('flutter-apk'));
@@ -50,7 +52,7 @@ async function collapseIdenticalFlutterCopy(matches: string[]): Promise<string[]
     const parts = file.split(path.sep);
     const out = parts.lastIndexOf('outputs');
     const gradleApk = out >= 0 && parts[out + 1] === 'apk';
-    if (gradleApk && path.basename(file) === path.basename(chosen) && await sameBytes(file, chosen)) {
+    if (gradleApk && await sameBytes(file, chosen)) {
       continue;
     }
     kept.push(file);

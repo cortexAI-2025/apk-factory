@@ -62,6 +62,21 @@ test('flutter release prefers flutter-apk when Gradle wrote an identical copy', 
   assert.equal(await findBuildArtifact(root, 'RELEASE'), path.join(root, flutter));
 });
 
+test('flutter release prefers flutter-apk when the Gradle copy is named app-release-unsigned.apk', async t => {
+  const gradle = 'build/app/outputs/apk/release/app-release-unsigned.apk';
+  const flutter = 'build/app/outputs/flutter-apk/app-release.apk';
+  const root = await workspace(t, [gradle, flutter]);
+  assert.equal(await findBuildArtifact(root, 'RELEASE'), path.join(root, flutter));
+});
+
+test('flutter release still refuses an unsigned Gradle APK whose bytes differ', async t => {
+  const gradle = 'build/app/outputs/apk/release/app-release-unsigned.apk';
+  const flutter = 'build/app/outputs/flutter-apk/app-release.apk';
+  const root = await workspace(t, [gradle, flutter]);
+  await fs.writeFile(path.join(root, gradle), 'gradle-different');
+  await assert.rejects(findBuildArtifact(root, 'RELEASE'), /Multiple RELEASE artifacts/);
+});
+
 test('flutter release still refuses a different Gradle APK with the same name', async t => {
   const gradle = 'build/app/outputs/apk/release/app-release.apk';
   const flutter = 'build/app/outputs/flutter-apk/app-release.apk';

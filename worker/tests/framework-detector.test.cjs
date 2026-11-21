@@ -111,6 +111,22 @@ test('Expo with a prebuilt android/ project is reclassified as EXPO_BARE', async
   assert.equal(r.packageManager, 'pnpm');
   assert.equal(r.buildSystem.androidGenerated, true);
   assert.equal(r.buildSystem.gradleRoot, 'android');
+  assert.ok(r.confidence > 0, `bare confidence must not stay at 0 (${r.confidence})`);
+  assert.equal(r.ambiguousWith.includes('EXPO_MANAGED'), false);
+});
+
+test('Expo bare with a react-native dependency is not ambiguous with itself', async (t) => {
+  const root = await project(t, {
+    'package.json': JSON.stringify({ dependencies: { expo: '~51.0.0', 'react-native': '0.74.5' } }),
+    'package-lock.json': '{}',
+    'app.json': JSON.stringify({ expo: { name: 'demo', slug: 'demo' } }),
+    'android/app/build.gradle': "apply plugin: 'com.android.application'",
+  });
+  const r = await detectFramework(root);
+  assert.equal(r.framework, 'EXPO_BARE');
+  assert.ok(r.confidence > 0, String(r.confidence));
+  assert.equal(r.ambiguousWith.includes('EXPO_MANAGED'), false);
+  assert.equal(r.signals.some((s) => s.framework === 'EXPO_MANAGED'), false);
 });
 
 // ── Capacitor / Vite / Next.js — detection only, no engine yet ──────────────
