@@ -68,6 +68,11 @@ if [ -n "${BUILD_PROXY_HOST:-}" ]; then
         echo "systemProp.https.proxyHost=${BUILD_PROXY_HOST}"
         echo "systemProp.https.proxyPort=${P}"
         echo "systemProp.http.nonProxyHosts=localhost|127.0.0.1"
+        # Maven Central answers 429 Too Many Requests to busy shared egress IPs (observed on CI for
+        # gson-2.9.1.pom, failing expo and react-native). Gradle retries 3x with a 125 ms backoff by
+        # default: give it more attempts and a real exponential backoff before a build is failed.
+        echo "systemProp.org.gradle.internal.repository.max.tentatives=8"
+        echo "systemProp.org.gradle.internal.repository.initial.backoff=1000"
         echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 ${PROXY_OPTS}"
     } >> "${GRADLE_USER_HOME}/gradle.properties"
     # npm/yarn/pnpm (React Native / Expo engines) read these standard vars —

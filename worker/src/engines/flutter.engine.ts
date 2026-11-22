@@ -95,6 +95,41 @@ function flutterInvocation(ctx: PipelineContext, extraGradleArgs?: string): stri
   return `flutter build apk --debug --target-platform ${ABIS}${tail}`;
 }
 
+
+/**
+ * Flutter's Android template builds the Gradle plugin from the SDK as an included build:
+ *   includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
+ * Gradle writes `.gradle/` and `build/` inside every included build. The SDK lives under /opt,
+ * read-only in the build sandbox, so the build dies with the misleading
+ * "The settings are not yet available for build" (Gradle masks the real resolution error).
+ * Point that include at a writable copy under /tmp; the SDK itself stays untouched.
+ */
+export const FLUTTER_TOOLS_GRADLE_COPY = '/tmp/flutter-tools-gradle';
+
+export function redirectFlutterToolsGradleInclude(text: string): string {
+  return text.replace(
+    /includeBuild\(\s*(["'])\$\{?flutterSdkPath\}?\/packages\/flutter_tools\/gradle\1\s*\)/g,
+    'includeBuild("/tmp/flutter-tools-gradle")',
+  );
+}
+
+export function flutterToolsGradleCopyShell(): string {
+  const script = [
+    'const fs=require("fs");',
+    `const redirect=${redirectFlutterToolsGradleInclude.toString().replace(/^function\s+\w*/, 'function').replace(/\s*\n\s*/g, ' ')};`,
+    'const files=["android/settings.gradle.kts","android/settings.gradle"].filter((f)=>fs.existsSync(f));',
+    'const changed=files.filter((f)=>{const o=fs.readFileSync(f,"utf8");return redirect(o)!==o;});',
+    'if(changed.length){',
+    'const src=(process.env.FLUTTER_HOME||"/opt/flutter")+"/packages/flutter_tools/gradle";',
+    `const dst=${JSON.stringify(FLUTTER_TOOLS_GRADLE_COPY)};`,
+    'fs.rmSync(dst,{recursive:true,force:true});',
+    'fs.cpSync(src,dst,{recursive:true,dereference:true});',
+    'for(const f of changed){fs.writeFileSync(f,redirect(fs.readFileSync(f,"utf8")));console.log("[engine:flutter] included build of the Flutter Gradle plugin moved to a writable copy in "+f);}',
+    '}',
+  ].join('');
+  return `node -e ${JSON.stringify(script)}`;
+}
+
 export const flutterEngine: BuildEngine = {
   id: 'FLUTTER',
 
@@ -153,6 +188,7 @@ export const flutterEngine: BuildEngine = {
       '  flutter create --platforms=android .',
       'fi',
       `node -e ${JSON.stringify(capInside)}`,
+      flutterToolsGradleCopyShell(),
       ...(releaseLike ? [`node -e ${JSON.stringify(stripInside)}`] : []),
       'if [ -f android/gradle.properties ]; then echo "[engine:flutter] $(grep -E "^org\\.gradle\\.jvmargs=" android/gradle.properties || true)"; fi',
       'flutter pub get',

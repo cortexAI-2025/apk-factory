@@ -14,3 +14,41 @@ for (const buildType of ['DEBUG', 'RELEASE', 'AAB']) {
     assert.match(command, /command -v flutter-health/); // optional on hosts without the image scripts
   });
 }
+
+// Regression (CI run on fddc15b, HTTP Docker flutter): Gradle failed with "The settings are not yet
+// available for build" because the template includes the Flutter Gradle plugin build from the
+// read-only SDK under /opt. The include must point at a writable copy.
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+const { redirectFlutterToolsGradleInclude, flutterToolsGradleCopyShell } = require('../dist/engines/flutter.engine');
+
+test('redirects the Kotlin and Groovy forms of the plugin include', () => {
+  assert.equal(redirectFlutterToolsGradleInclude('includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")'), 'includeBuild("/tmp/flutter-tools-gradle")');
+  assert.equal(redirectFlutterToolsGradleInclude("includeBuild('${flutterSdkPath}/packages/flutter_tools/gradle')"), 'includeBuild("/tmp/flutter-tools-gradle")');
+  const other = 'includeBuild("../local-plugin")';
+  assert.equal(redirectFlutterToolsGradleInclude(other), other);
+});
+
+test('the shell step copies the plugin build and rewrites settings in the workspace only', (t) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ftg-'));
+  t.after(() => { fs.rmSync(root, { recursive: true, force: true }); fs.rmSync('/tmp/flutter-tools-gradle', { recursive: true, force: true }); });
+  const sdk = path.join(root, 'sdk'); const proj = path.join(root, 'app');
+  fs.mkdirSync(path.join(sdk, 'packages/flutter_tools/gradle'), { recursive: true });
+  fs.writeFileSync(path.join(sdk, 'packages/flutter_tools/gradle/settings.gradle.kts'), '// plugin build\n');
+  fs.mkdirSync(path.join(proj, 'android'), { recursive: true });
+  const settings = path.join(proj, 'android/settings.gradle.kts');
+  fs.writeFileSync(settings, 'pluginManagement {\n    includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")\n}\n');
+  const out = execFileSync('bash', ['-c', flutterToolsGradleCopyShell()], { cwd: proj, env: { ...process.env, FLUTTER_HOME: sdk }, encoding: 'utf8' });
+  assert.match(out, /moved to a writable copy/);
+  assert.match(fs.readFileSync(settings, 'utf8'), /includeBuild\("\/tmp\/flutter-tools-gradle"\)/);
+  assert.ok(fs.existsSync('/tmp/flutter-tools-gradle/settings.gradle.kts'));
+  assert.ok(fs.existsSync(path.join(sdk, 'packages/flutter_tools/gradle/settings.gradle.kts'))); // SDK untouched
+});
+
+test('the build script applies the copy after flutter create and before pub get / build', () => {
+  const { command } = flutterEngine.composeCommand({ buildType: 'DEBUG', packageManager: 'npm', buildSystemInfo: {} });
+  const i = command.indexOf('writable copy');
+  assert.ok(i > command.indexOf('flutter create') && i < command.indexOf('flutter pub get') && i < command.indexOf('flutter build apk'));
+});
