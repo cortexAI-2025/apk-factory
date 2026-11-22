@@ -1,0 +1,23 @@
+build-tools: /usr/local/lib/android/sdk/build-tools/37.0.0
+Verifies
+Verified using v1 scheme (JAR signing): false
+Verified using v2 scheme (APK Signature Scheme v2): true
+Verified using v3 scheme (APK Signature Scheme v3): false
+Verified using v3.1 scheme (APK Signature Scheme v3.1): false
+Verified using v3.2 scheme (APK Signature Scheme v3.2): false
+Verified using v4 scheme (APK Signature Scheme v4): false
+Verified for SourceStamp: false
+Number of signers: 1
+V2 Signer: certificate DN: C=US, O=Android, CN=Android Debug
+V2 Signer: certificate SHA-256 digest: c386316525dd7598ebe792f25041fb2d1406f7d4f5643e44f3945c3f6c2d6308
+V2 Signer: certificate SHA-1 digest: e69207d1249de7ec78691068c5a7db7ea4856e3a
+V2 Signer: certificate MD5 digest: d6537a89460cf1cda8e4ceb36f388e80
+V2 Signer: key algorithm: RSA
+V2 Signer: key size (bits): 2048
+V2 Signer: public key SHA-256 digest: 14dbdf815cb5fe88a0cef685f73ac6950dacf191a8f45bb2c28f0f7e78a189b8
+V2 Signer: public key SHA-1 digest: 845074b5ec179b86649f5f38854fc1d9b8840a48
+V2 Signer: public key MD5 digest: 673b394cbc8aa33a797d3ff15617a315
+package: name='com.apkfactory.reference' versionCode='1' versionName='1.0' platformBuildVersionName='14' platformBuildVersionCode='34' compileSdkVersion='34' compileSdkVersionCodename='14'
+targetSdkVersion:'34'
+launchable-activity: name='com.apkfactory.reference.MainActivity'  label='' icon=''
+✓ debug-signed APK, package com.apkfactory.reference
