@@ -213,7 +213,7 @@ export abstract class BaseDockerRuntime implements IRuntime {
       '--read-only',
       '--init',
       // /tmp holds the Gradle home, Android user home and dex temp files — needs exec
-      '--tmpfs', '/tmp:size=2g,exec,mode=1777',
+      '--tmpfs', `/tmp:size=${process.env.BUILD_TMPFS_SIZE || '2g'},exec,mode=1777`,
       '--volume', `${projectPath}:/workspace:rw`,
       ...(opts.extraVolumes || []),
       // ── environment: explicit allow-list, never the worker's own env ──

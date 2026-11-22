@@ -9,6 +9,19 @@
 import { BuildEngine, ComposedCommand, installCommand, resolveGradleTask } from './types';
 import { PipelineContext } from '../pipeline/types';
 
+/** The image ships one NDK and the SDK tree is read-only at build time. */
+function alignNdk(gradleRoot: string): string {
+  return [
+    'const fs=require("fs");const path=require("path");',
+    `const root=${JSON.stringify(gradleRoot)};`,
+    'let installed=[];',
+    'try{installed=fs.readdirSync("/opt/android-sdk/ndk").filter((n)=>fs.existsSync(path.join("/opt/android-sdk/ndk",n,"source.properties")));}catch(e){}',
+    'installed.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));',
+    'const ndk=installed[installed.length-1];',
+    'if(ndk){for(const name of ["build.gradle","build.gradle.kts"]){const f=path.join(root,name);if(!fs.existsSync(f))continue;const g=fs.readFileSync(f,"utf8");const next=g.replace(/ndkVersion\\s*=\\s*["\'][^"\']+["\']/g,"ndkVersion = \\""+ndk+"\\"");if(next!==g){fs.writeFileSync(f,next);console.log("[engine] ndkVersion aligned to image NDK "+ndk+" in "+f);}}}',
+  ].join('');
+}
+
 export const capacitorEngine: BuildEngine = {
   id: 'CAPACITOR',
 
@@ -29,6 +42,7 @@ export const capacitorEngine: BuildEngine = {
       '  npx cap add android',
       'fi',
       'npx cap sync android',
+      `node -e ${JSON.stringify(alignNdk(gradleRoot))}`,
       `cd ${gradleRoot}`,
       'chmod +x ./gradlew',
       gradleInvocation,

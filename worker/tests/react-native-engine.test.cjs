@@ -23,6 +23,7 @@ test('react-native-cli engine: npm, debug build', () => {
   assert.equal(shell, true);
   assert.match(command, /^set -euo pipefail\n/);
   assert.match(command, /npm ci/);
+  assert.match(command, /enableJetifier=false/);
   assert.match(command, /cd android/);
   assert.match(command, /chmod \+x \.\/gradlew/);
   assert.match(command, /\.\/gradlew assembleDebug --no-daemon --stacktrace --console=plain$/);

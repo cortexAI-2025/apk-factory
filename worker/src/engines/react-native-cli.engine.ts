@@ -28,10 +28,33 @@ export const reactNativeCliEngine: BuildEngine = {
       './gradlew', task, '--no-daemon', '--stacktrace', '--console=plain', extraGradleArgs,
     ].filter(Boolean).join(' ');
 
+    // The RN template enables Jetifier and a 2G heap. On a 4 GB build
+    // container that combination is OOM-killed inside JetifyTransform
+    // (observed on the 0.73 template). Rewrite only the workspace copy.
+    const normalize = [
+      'const fs=require("fs");',
+      'const p="android/gradle.properties";',
+      'if(!fs.existsSync(p)) process.exit(0);',
+      'let t=fs.readFileSync(p,"utf8"); const orig=t;',
+      'const mb=(n,u)=>String(u).toLowerCase()==="g"?parseInt(n,10)*1024:parseInt(n,10);',
+      't=t.replace(/-Xmx(\\d+)([gGmM])/g,(all,n,u)=>mb(n,u)>1280?"-Xmx1280m":all);',
+      'if(/android\\.enableJetifier\\s*=/.test(t)) t=t.replace(/android\\.enableJetifier\\s*=\\s*true/gi,"android.enableJetifier=false");',
+      'if(/org\\.gradle\\.daemon\\s*=/.test(t)) t=t.replace(/org\\.gradle\\.daemon\\s*=\\s*true/gi,"org.gradle.daemon=false");',
+      'else t+=(t.endsWith("\\n")?"":"\\n")+"org.gradle.daemon=false\\n";',
+      'if(!/org\\.gradle\\.workers\\.max\\s*=/.test(t)) t+="org.gradle.workers.max=1\\n";',
+      't=t.replace(/^reactNativeArchitectures=.*$/m,(line)=>line.includes(",")?"reactNativeArchitectures=arm64-v8a":line);',
+      'let installed=[];',
+      'try{installed=require("fs").readdirSync("/opt/android-sdk/ndk").filter((n)=>require("fs").existsSync("/opt/android-sdk/ndk/"+n+"/source.properties"));}catch(e){}',
+      'installed.sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));',
+      'const ndk=installed[installed.length-1];',
+      'if(ndk){ for(const name of ["build.gradle","build.gradle.kts"]){ const f="android/"+name; if(!fs.existsSync(f)) continue; const g=fs.readFileSync(f,"utf8"); const next=g.replace(/ndkVersion\\s*=\\s*["\'][^"\']+["\']/g, "ndkVersion = \\""+ndk+"\\""); if(next!==g){ fs.writeFileSync(f,next); console.log("[engine:react-native-cli] ndkVersion aligned to image NDK "+ndk); } } }',
+      'if(t!==orig){ fs.writeFileSync(p,t); console.log("[engine:react-native-cli] normalized Gradle memory and jetifier"); }',
+    ].join('');
     const script = [
       'set -euo pipefail',
       `echo "[engine:react-native-cli] package manager: ${pm}"`,
       installCommand(pm),
+      `node -e ${JSON.stringify(normalize)}`,
       `cd ${gradleRoot}`,
       'chmod +x ./gradlew',
       gradleInvocation,

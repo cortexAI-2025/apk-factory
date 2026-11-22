@@ -86,11 +86,12 @@ RUN set -eux; \
         arm64) NODE_ARCH=arm64 ;; \
         *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
     esac; \
-    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -O /tmp/node.tar.xz; \
-    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" -O /tmp/node-SHASUMS256.txt; \
-    grep " node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz\$" /tmp/node-SHASUMS256.txt | sha256sum -c -; \
-    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
-    rm -f /tmp/node.tar.xz /tmp/node-SHASUMS256.txt
+    cd /tmp; \
+    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz"; \
+    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"; \
+    grep " node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz\$" SHASUMS256.txt | sha256sum -c -; \
+    tar -xJf "node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -C /usr/local --strip-components=1; \
+    rm -f "node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" SHASUMS256.txt
 
 # npm ships with Node; pin pnpm/yarn via Corepack (no unversioned global CLI —
 # "npx expo"/"npx pnpm"/"yarn" always resolve the project's own declared
