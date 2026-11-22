@@ -237,22 +237,30 @@ jobs:
           git add -A && git commit -q -m "CI evidence for ${GITHUB_SHA::7} (run ${GITHUB_RUN_ID})" && git push -q origin HEAD:ci-evidence || echo "::warning::could not push evidence"
 
   frameworks:
-    name: HTTP Docker ${{ matrix.id }}
+    name: HTTP Docker ${{ matrix.id }}${{ matrix.experimental && ' (experimental, non-blocking)' || '' }}
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 360
+    # Experimental engines (Expo, Flutter) are built and reported on every run but never fail the workflow.
+    continue-on-error: ${{ matrix.experimental == true }}
     strategy:
       fail-fast: false
       matrix:
         include:
+          # Certified engines: a failure blocks the PR.
           - id: native
             set: java,kotlin
           - id: webview
             set: capacitor,cordova
+          - id: react-native
+            set: react-native
+          # Experimental engines: kept selectable, not certified in V1.
+          - id: expo
+            set: expo
+            experimental: true
           - id: flutter
             set: flutter
-          - id: javascript
-            set: expo,react-native
+            experimental: true
     env:
       E2E_OUT: ${{ github.workspace }}/e2e-out
       UPLOADS_PATH: /tmp/apk-factory-uploads

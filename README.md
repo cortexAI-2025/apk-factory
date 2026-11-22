@@ -405,3 +405,7 @@ FRAMEWORKS=java,kotlin   node e2e/frameworks.cjs     # also: react-native | capa
 ```
 
 Evidence of a run (logs, per-build reports, artifact checks) is uploaded by CI as the `frameworks-*` artifacts.
+
+CI jobs `HTTP Docker native`, `webview` and `react-native` and the ZIP job are **blocking**. `HTTP Docker expo` and
+`HTTP Docker flutter` are labelled *experimental, non-blocking* (`continue-on-error`): they run on every push and
+report their result, but never fail the workflow.
