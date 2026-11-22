@@ -320,6 +320,9 @@ async function runVariant(spec, token, projectId, variant) {
     L.check(`${spec.id} ${variant} language ${spec.expect.language}`, row.language.toUpperCase() === String(spec.expect.language).toUpperCase(), row.language || 'no language line');
   }
   if (done.status !== 'SUCCESS') {
+    // The API logs are already redacted by the worker. Show the cause in the CI log itself
+    // (the uploaded evidence zip is not always reachable).
+    console.log(`--- ${spec.id} ${variant}: last build log lines ---\n${logs.split('\n').slice(-80).join('\n')}\n--- end ---`);
     row.error = done.errorMessage || '';
     REPORT.push(row);
     return row;
