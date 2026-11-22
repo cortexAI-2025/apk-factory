@@ -4,10 +4,22 @@
  */
 import { spawn, execFile } from 'child_process';
 import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
 import * as path from 'path';
 import { IRuntime, ContainerRunOptions, ContainerRunResult, RuntimeInfo } from './runtime.interface';
 import { SANDBOX } from '../security/sandbox-config';
 import { logger } from '../logger';
+
+/** Flutter writes only this lock under the otherwise read-only SDK tree. */
+function flutterLockFile(): string {
+  const file = process.env.FLUTTER_LOCK_FILE || '/tmp/apk-factory-flutter.lock';
+  try {
+    fsSync.mkdirSync(path.dirname(file), { recursive: true });
+    if (!fsSync.existsSync(file)) fsSync.writeFileSync(file, '');
+    fsSync.chmodSync(file, 0o666);
+  } catch { /* the path is still the mount source; docker reports a real error if it cannot be created */ }
+  return file;
+}
 
 export abstract class BaseDockerRuntime implements IRuntime {
   abstract readonly name: string;
@@ -215,6 +227,7 @@ export abstract class BaseDockerRuntime implements IRuntime {
       // /tmp holds the Gradle home, Android user home and dex temp files — needs exec
       '--tmpfs', `/tmp:size=${process.env.BUILD_TMPFS_SIZE || '2g'},exec,mode=1777`,
       '--volume', `${projectPath}:/workspace:rw`,
+      '--volume', `${flutterLockFile()}:/opt/flutter/bin/cache/lockfile:rw`,
       ...(opts.extraVolumes || []),
       // ── environment: explicit allow-list, never the worker's own env ──
       '--env', 'ANDROID_HOME=/opt/android-sdk',

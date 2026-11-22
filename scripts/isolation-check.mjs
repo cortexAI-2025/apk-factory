@@ -54,7 +54,7 @@ test -e /var/run/docker.sock && echo "DOCKER_SOCK=present" || echo "DOCKER_SOCK=
 echo "SECRET_ENV=$(env | grep -Ei 'secret|password|token|api_key|jwt|anthropic|database_url|redis' | grep -v '^BUILD_PROXY' | wc -l)"
 echo "OTHER_BUILD_VISIBLE=$(find / -name canary-other-build -not -path '/proc/*' 2>/dev/null | wc -l)"
 echo "WORKSPACE_FILES=$(ls /workspace | tr '\\n' ',')"
-echo "MOUNTS=$(awk '{print $5}' /proc/self/mountinfo | grep -Ev '^(/|/proc.*|/dev.*|/sys.*|/etc/(resolv.conf|hostname|hosts)|/tmp|/workspace|/usr/sbin/docker-init)$' | tr '\\n' ',')"
+echo "MOUNTS=$(awk '{print $5}' /proc/self/mountinfo | grep -Ev '^(/|/proc.*|/dev.*|/sys.*|/etc/(resolv.conf|hostname|hosts)|/tmp|/workspace|/opt/flutter/bin/cache/lockfile|/usr/sbin/docker-init)$' | tr '\\n' ',')"
 echo "MEMMAX=$(cat /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null | head -1)"
 echo "PIDSMAX=$(cat /sys/fs/cgroup/pids.max /sys/fs/cgroup/pids/pids.max 2>/dev/null | head -1)"
 echo "ULIMIT_N=$(ulimit -n)"

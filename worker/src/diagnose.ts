@@ -42,7 +42,8 @@ export function diagnoseFailure(output: string, exitCode?: number, stoppedBy?: '
       hint: 'This is a server configuration problem, not your project. Check that the builder image and the build network exist (scripts/egress-proxy-up.sh) and contact the administrator.',
       excerpt: lines.filter((l) => /docker:|Error response/.test(l)).slice(0, 3).map((l) => redact(l)) };
   }
-  if (/OutOfMemoryError|Java heap space|GC overhead limit/.test(text) || exitCode === 137) {
+  // HeapDumpOnOutOfMemoryError is a JVM flag in our own scripts, not a crash.
+  if (/(?<![\w])OutOfMemoryError|Java heap space|GC overhead limit/.test(text) || exitCode === 137) {
     return { code: 'OUT_OF_MEMORY', summary: 'The build ran out of memory.',
       hint: 'Reduce org.gradle.jvmargs in gradle.properties or raise BUILD_MEMORY.', excerpt: ex(wrong) };
   }
