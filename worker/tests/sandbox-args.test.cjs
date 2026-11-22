@@ -17,7 +17,9 @@ test('sandbox drops privileges and mounts only the workspace', () => {
   assert.equal(valueOf(a, '--user'), '1000:1000');
   assert.equal(valueOf(a, '--cap-drop'), 'ALL');
   assert.ok(a.includes('--read-only'));
-  assert.deepEqual(a.filter((x, i) => a[i - 1] === '--volume'), ['/tmp/ws:/workspace:rw']);
+  assert.deepEqual(a.filter((x, i) => a[i - 1] === '--volume'), [
+    '/tmp/ws:/workspace:rw',
+  ]);
   assert.ok(!a.some((x) => /docker\.sock/.test(x)));
 });
 test('environment is an explicit allow-list without secrets', () => {

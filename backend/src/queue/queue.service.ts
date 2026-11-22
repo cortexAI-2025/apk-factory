@@ -51,10 +51,28 @@ export class QueueService implements OnModuleInit {
   }
 
   async cancelJob(jobId: string): Promise<void> {
-    const job = await this.buildQueue.getJob(jobId);
-    if (job) {
+    try {
+      const job = await this.buildQueue.getJob(jobId);
+      if (!job) return;
+      const state = await job.getState();
+      // An active job is locked by the worker. BullMQ then throws
+      // "could not be removed because it is locked by another worker",
+      // which the HTTP layer surfaced as 500. The row is still marked
+      // CANCELLED by the caller; a later worker status update must not
+      // overwrite that (see InternalBuildsController).
+      if (state === 'active') {
+        this.logger.warn(`Job ${jobId} is active and stays locked; build row is cancelled`);
+        return;
+      }
       await job.remove();
       this.logger.log(`Job ${jobId} cancelled`);
+    } catch (err: any) {
+      const message = err?.message || String(err);
+      if (/locked by another worker|not in a removable state|could not be removed/i.test(message)) {
+        this.logger.warn(`Job ${jobId} could not be removed (${message})`);
+        return;
+      }
+      throw err;
     }
   }
 

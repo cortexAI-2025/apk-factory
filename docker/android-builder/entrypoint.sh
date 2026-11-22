@@ -46,6 +46,15 @@ export ANDROID_USER_HOME="${ANDROID_USER_HOME:-/tmp/android}"   # debug.keystore
 mkdir -p "${HOME}" "${ANDROID_USER_HOME}"
 export GRADLE_USER_HOME="/tmp/gradle-home"
 mkdir -p "${GRADLE_USER_HOME}"
+if [ -x /opt/flutter/bin/flutter ]; then
+    export FLUTTER_HOME="${FLUTTER_HOME:-/opt/flutter}"
+    export PATH="${FLUTTER_HOME}/bin:${PATH}"
+    export PUB_CACHE="${PUB_CACHE:-/tmp/pub-cache}"
+    mkdir -p "${PUB_CACHE}" "${HOME}/.config" "${HOME}/.flutter"
+    # bin/cache/lockfile and *.stamp are symlinks into tmpfs (read-only rootfs). Seed them.
+    . /usr/local/lib/apk-factory/flutter-bootstrap.sh
+    echo "[entrypoint] Flutter   : ${FLUTTER_HOME}"
+fi
 
 # ── Egress proxy (BUILD_NETWORK_MODE=restricted) ─────────────────────────────
 if [ -n "${BUILD_PROXY_HOST:-}" ]; then
@@ -59,6 +68,11 @@ if [ -n "${BUILD_PROXY_HOST:-}" ]; then
         echo "systemProp.https.proxyHost=${BUILD_PROXY_HOST}"
         echo "systemProp.https.proxyPort=${P}"
         echo "systemProp.http.nonProxyHosts=localhost|127.0.0.1"
+        # Maven Central answers 429 Too Many Requests to busy shared egress IPs (observed on CI for
+        # gson-2.9.1.pom, failing expo and react-native). Gradle retries 3x with a 125 ms backoff by
+        # default: give it more attempts and a real exponential backoff before a build is failed.
+        echo "systemProp.org.gradle.internal.repository.max.tentatives=8"
+        echo "systemProp.org.gradle.internal.repository.initial.backoff=1000"
         echo "org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8 ${PROXY_OPTS}"
     } >> "${GRADLE_USER_HOME}/gradle.properties"
     # npm/yarn/pnpm (React Native / Expo engines) read these standard vars —

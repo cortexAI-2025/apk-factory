@@ -60,6 +60,9 @@ export async function stageBuild(ctx: PipelineContext, job?: Job): Promise<Stage
   const extraGradleArgs = cacheAvailable
     ? '--init-script /workspace/.gradle/init.d/apk-factory-offline.gradle'
     : undefined;
+  if (ctx.buildType === 'RELEASE' || ctx.buildType === 'AAB') {
+    await ctx.log('info', 'Release signing runs after the sandbox exits. The upload key is not visible to project code.');
+  }
   const engine = getEngine(ctx.framework);
   await ctx.log('info', `Engine: ${engine.id}`);
 

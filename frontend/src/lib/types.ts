@@ -26,6 +26,7 @@ export interface Project {
   sdkVersion?: number;
   kotlinVersion?: string;
   compatibilityScore?: number;
+  metadata?: { framework?: string; nativeLanguage?: string };
   createdAt: string;
   builds?: Build[];
   _count?: { builds: number };

@@ -48,8 +48,9 @@ export class DownloadController {
       throw new NotFoundException("APK file not found on server");
     }
 
+    const fileName = artifact.fileName;
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.type('application/vnd.android.package-archive');
-    res.download(artifact.storagePath, artifact.fileName);
+    res.type(fileName.endsWith('.aab') ? 'application/octet-stream' : 'application/vnd.android.package-archive');
+    res.download(artifact.storagePath, fileName);
   }
 }

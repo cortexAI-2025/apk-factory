@@ -30,6 +30,8 @@ interface AndroidProjectAnalysis {
   hasGradleWrapper: boolean;
   mainBuildFile?: string;
   appName?: string;
+  /** Precise stack (CAPACITOR, CORDOVA, EXPO, …). The Prisma enum stays coarse. */
+  framework?: string;
 }
 
 @Injectable()
@@ -299,19 +301,47 @@ export class ProjectsService {
     try {
       await fs.access(path.join(projectPath, 'pubspec.yaml'));
       analysis.projectType = ProjectType.FLUTTER;
+      analysis.framework = 'FLUTTER';
       score += 30;
     } catch {}
 
-    // Check for React Native
+    // Check for JS Android stacks. Flutter wins when both are present.
     try {
       const pkg = JSON.parse(
         await fs.readFile(path.join(projectPath, 'package.json'), 'utf-8'),
       );
-      if (pkg.dependencies?.['react-native'] || pkg.devDependencies?.['react-native']) {
-        analysis.projectType = ProjectType.REACT_NATIVE;
-        score += 30;
+      const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+      if (analysis.projectType !== ProjectType.FLUTTER) {
+        if (deps['expo']) {
+          analysis.projectType = ProjectType.REACT_NATIVE;
+          analysis.framework = 'EXPO';
+          score += 30;
+        } else if (deps['react-native']) {
+          analysis.projectType = ProjectType.REACT_NATIVE;
+          analysis.framework = 'REACT_NATIVE_CLI';
+          score += 30;
+        } else if (deps['@capacitor/core'] || deps['@capacitor/android']) {
+          analysis.projectType = ProjectType.ANDROID_NATIVE;
+          analysis.framework = 'CAPACITOR';
+          score += 30;
+        } else if (deps['cordova'] || deps['cordova-android'] || pkg.cordova) {
+          analysis.projectType = ProjectType.ANDROID_NATIVE;
+          analysis.framework = 'CORDOVA';
+          score += 30;
+        }
       }
     } catch {}
+
+    if (!analysis.framework) {
+      try {
+        const xml = await fs.readFile(path.join(projectPath, 'config.xml'), 'utf-8');
+        if (/<widget[\s>]/.test(xml)) {
+          analysis.projectType = ProjectType.ANDROID_NATIVE;
+          analysis.framework = 'CORDOVA';
+          score += 30;
+        }
+      } catch {}
+    }
 
     // Check for Android native
     try {
@@ -329,12 +359,15 @@ export class ProjectsService {
       score += 40;
     } catch {}
 
-    // Check Gradle wrapper
-    try {
-      await fs.access(path.join(projectPath, 'gradlew'));
-      analysis.hasGradleWrapper = true;
-      score += 20;
-    } catch {}
+    // Check Gradle wrapper (root, Flutter android/, or Cordova platforms/android)
+    for (const wrapper of ['gradlew', path.join('android', 'gradlew'), path.join('platforms', 'android', 'gradlew')]) {
+      try {
+        await fs.access(path.join(projectPath, wrapper));
+        analysis.hasGradleWrapper = true;
+        score += 20;
+        break;
+      } catch {}
+    }
 
     // Parse Gradle properties for versions
     try {

@@ -7,7 +7,7 @@ export interface ContainerRunOptions {
    * runtime splits and runs directly, appending --no-daemon/--stacktrace.
    * For multi-step engines (React Native CLI, Expo — shell=true) this is a
    * full bash script (install deps, prebuild, cd android, run gradlew) run
-   * via `bash -lc`, since those steps precede Gradle and gradlew may not
+   * via `bash -c`, since those steps precede Gradle and gradlew may not
    * exist at the workspace root yet.
    */
   gradleCommand: string;

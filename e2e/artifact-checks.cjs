@@ -44,7 +44,7 @@ const detail = async (token, projectId, buildId) => (await api(`/projects/${proj
     check('upload refused with a wrong worker secret (401)', noSecret.status === 401, `HTTP ${noSecret.status}`);
     const badSha = await internal(`/${buildId}/artifacts`, { body: apk1, query: q({ sha256: 'a'.repeat(64) }) });
     check('checksum mismatch is rejected (400) and stores nothing', badSha.status === 400 && filesIn(buildId).length === 0, `HTTP ${badSha.status} files=${filesIn(buildId).length}`);
-    for (const [label, fileName] of [['path traversal name', '../../etc/x.apk'], ['script name', 'evil.sh'], ['double extension', 'a.apk.html'], ['AAB while release builds are disabled', 'app.aab'], ['empty name', '']]) {
+    for (const [label, fileName] of [['path traversal name', '../../etc/x.apk'], ['script name', 'evil.sh'], ['double extension', 'a.apk.html'], ['empty name', '']]) {
       const r = await internal(`/${buildId}/artifacts`, { body: apk1, query: q({ fileName }) });
       check(`file name rejected: ${label}`, r.status === 400, `HTTP ${r.status}`);
     }
@@ -70,6 +70,10 @@ const detail = async (token, projectId, buildId) => (await api(`/projects/${proj
     check('API exposes SHA-256 and size but never the storage path', d.artifacts.every((a) => /^[a-f0-9]{64}$/.test(a.sha256) && a.sizeBytes > 0 && !('storagePath' in a)) && !JSON.stringify(d).includes(UPLOADS));
     const names = filesIn(buildId);
     check('files are stored under opaque ids, never under user-supplied names', names.length === 2 && names.every((n) => /^[0-9a-f-]{36}\.apk$/.test(n)), names.join(','));
+
+    const aabBody = crypto.randomBytes(1800);
+    const okAab = await internal(`/${buildId}/artifacts`, { body: aabBody, query: q({ fileName: 'app-release.aab', variant: 'release', abi: 'universal', recommended: 'false', sha256: sha256(aabBody) }) });
+    check('AAB upload is accepted and stored as .aab', okAab.status === 201 && filesIn(buildId).some((n) => n.endsWith('.aab')), `HTTP ${okAab.status} ${filesIn(buildId).join(',')}`);
 
     // ── owner-only download ──
     for (const [a, bytes] of [[d.artifacts[0], apk1], [d.artifacts[1], apk2]]) {

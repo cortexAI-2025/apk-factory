@@ -26,8 +26,9 @@ test('expo engine: managed project (no android/ yet) runs prebuild before Gradle
   // install must precede prebuild, which must precede the gradlew line
   const installIdx = command.indexOf('npm ci');
   const prebuildIdx = command.indexOf('expo prebuild');
+  const normalizeIdx = command.indexOf('splashscreen_background');
   const gradleIdx = command.indexOf('./gradlew');
-  assert.ok(installIdx < prebuildIdx && prebuildIdx < gradleIdx, command);
+  assert.ok(installIdx < prebuildIdx && prebuildIdx < normalizeIdx && normalizeIdx < gradleIdx, command);
 });
 
 test('expo engine: bare project (android/ already generated) skips prebuild entirely', () => {
@@ -36,6 +37,8 @@ test('expo engine: bare project (android/ already generated) skips prebuild enti
   assert.doesNotMatch(command, /npx expo prebuild/);
   assert.match(command, /skipping expo prebuild/);
   assert.match(command, /yarn install --frozen-lockfile/);
+  assert.doesNotMatch(command, /splashscreen_background/);
+  assert.doesNotMatch(command, /enableJetifier=false/);
 });
 
 test('expo engine: never depends on EAS (no "eas" token anywhere in the composed script)', () => {
@@ -47,6 +50,39 @@ test('expo engine: never depends on EAS (no "eas" token anywhere in the composed
 
 test('engine-factory routes both EXPO_MANAGED and EXPO_BARE to the same engine', () => {
   assert.equal(getEngine('EXPO_MANAGED'), getEngine('EXPO_BARE'));
+});
+
+test('expo prebuild normalizer caps the generated template and adds the missing splash color', () => {
+  const { execFileSync } = require('node:child_process');
+  const fss = require('node:fs');
+  const { EXPO_GENERATED_ANDROID_NORMALIZE_JS } = require('../dist/engines/expo.engine');
+  const root = fss.mkdtempSync(path.join(os.tmpdir(), 'expo-norm-'));
+  const props = path.join(root, 'android', 'gradle.properties');
+  const res = path.join(root, 'android', 'app', 'src', 'main', 'res');
+  fss.mkdirSync(path.join(res, 'drawable'), { recursive: true });
+  fss.mkdirSync(path.join(res, 'values'), { recursive: true });
+  fss.mkdirSync(path.join(res, 'values-night'), { recursive: true });
+  fss.writeFileSync(props, [
+    'org.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=512m',
+    'android.enableJetifier=true',
+    'reactNativeArchitectures=armeabi-v7a,arm64-v8a,x86,x86_64',
+    '',
+  ].join('\n'));
+  fss.writeFileSync(path.join(res, 'drawable', 'splashscreen.xml'), '<item android:drawable="@color/splashscreen_background"/>');
+  fss.writeFileSync(path.join(res, 'values', 'colors.xml'), '<resources>\n  <color name="colorPrimary">#023c69</color>\n</resources>\n');
+  fss.writeFileSync(path.join(res, 'values-night', 'colors.xml'), '<resources/>\n');
+  execFileSync(process.execPath, ['-e', EXPO_GENERATED_ANDROID_NORMALIZE_JS], { cwd: root });
+  const capped = fss.readFileSync(props, 'utf8');
+  assert.match(capped, /Xmx1280m/);
+  assert.match(capped, /android\.enableJetifier=false/);
+  assert.match(capped, /org\.gradle\.daemon=false/);
+  assert.match(capped, /org\.gradle\.workers\.max=1/);
+  assert.match(capped, /^reactNativeArchitectures=arm64-v8a$/m);
+  assert.match(fss.readFileSync(path.join(res, 'values', 'colors.xml'), 'utf8'), /splashscreen_background">#ffffff/);
+  const night = fss.readFileSync(path.join(res, 'values-night', 'colors.xml'), 'utf8');
+  assert.match(night, /splashscreen_background">#000000/);
+  assert.equal((night.match(/<resources/g) || []).length, 1);
+  fss.rmSync(root, { recursive: true, force: true });
 });
 
 // ── Pipeline integration (real stages, no Docker) ───────────────────────────

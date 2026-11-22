@@ -111,6 +111,22 @@ test('Expo with a prebuilt android/ project is reclassified as EXPO_BARE', async
   assert.equal(r.packageManager, 'pnpm');
   assert.equal(r.buildSystem.androidGenerated, true);
   assert.equal(r.buildSystem.gradleRoot, 'android');
+  assert.ok(r.confidence > 0, `bare confidence must not stay at 0 (${r.confidence})`);
+  assert.equal(r.ambiguousWith.includes('EXPO_MANAGED'), false);
+});
+
+test('Expo bare with a react-native dependency is not ambiguous with itself', async (t) => {
+  const root = await project(t, {
+    'package.json': JSON.stringify({ dependencies: { expo: '~51.0.0', 'react-native': '0.74.5' } }),
+    'package-lock.json': '{}',
+    'app.json': JSON.stringify({ expo: { name: 'demo', slug: 'demo' } }),
+    'android/app/build.gradle': "apply plugin: 'com.android.application'",
+  });
+  const r = await detectFramework(root);
+  assert.equal(r.framework, 'EXPO_BARE');
+  assert.ok(r.confidence > 0, String(r.confidence));
+  assert.equal(r.ambiguousWith.includes('EXPO_MANAGED'), false);
+  assert.equal(r.signals.some((s) => s.framework === 'EXPO_MANAGED'), false);
 });
 
 // ── Capacitor / Vite / Next.js — detection only, no engine yet ──────────────
@@ -158,11 +174,39 @@ test('Next.js without output:export is flagged as default (SSR, not static-expor
 // ── Flutter — detection only ─────────────────────────────────────────────────
 
 test('Flutter is detected from pubspec.yaml with maximum confidence', async (t) => {
-  const root = await project(t, { 'pubspec.yaml': 'name: demo\n' });
+  const root = await project(t, { 'pubspec.yaml': 'name: demo\ndependencies:\n  flutter:\n    sdk: flutter\n' });
   const r = await detectFramework(root);
   assert.equal(r.framework, 'FLUTTER');
   assert.equal(r.confidence, 1);
+  assert.equal(r.versions.flutter, 'sdk');
   assert.equal(mapFrameworkToProjectType(r.framework), 'FLUTTER');
+});
+
+test('Kotlin and Java native projects stay ANDROID_NATIVE and record the language', async (t) => {
+  const kotlin = await project(t, {
+    'settings.gradle': 'include ":app"',
+    'app/build.gradle': 'plugins { id "com.android.application" }\nandroid { compileSdk 34 }',
+    'app/src/main/kotlin/com/example/MainActivity.kt': 'class MainActivity',
+  });
+  const java = await project(t, {
+    'settings.gradle': 'include ":app"',
+    'app/build.gradle': 'plugins { id "com.android.application" }\nandroid { compileSdk 34 }',
+    'app/src/main/java/com/example/MainActivity.java': 'class MainActivity {}',
+  });
+  assert.equal((await detectFramework(kotlin)).framework, 'ANDROID_NATIVE');
+  assert.equal((await detectFramework(kotlin)).versions.nativeLanguage, 'kotlin');
+  assert.equal((await detectFramework(java)).versions.nativeLanguage, 'java');
+});
+
+test('Cordova is detected from config.xml and is not confused with Capacitor', async (t) => {
+  const root = await project(t, {
+    'config.xml': '<widget id="com.example.app" version="1.0.0"></widget>',
+    'package.json': JSON.stringify({ dependencies: { 'cordova-android': '13.0.0' } }),
+  });
+  const r = await detectFramework(root);
+  assert.equal(r.framework, 'CORDOVA');
+  assert.equal(mapFrameworkToProjectType(r.framework), 'ANDROID_NATIVE');
+  assert.equal(r.versions.cordovaAndroid, '13.0.0');
 });
 
 // ── Unknown / ambiguous ──────────────────────────────────────────────────────

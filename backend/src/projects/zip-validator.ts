@@ -113,9 +113,8 @@ export async function inspectZip(
     if (!name.endsWith('/') && !name.startsWith('__MACOSX/')) files.add(name);
   }
 
-  // ── locate the Gradle project: archive root, or up to three folders down ──
-  // (a GitHub "Download ZIP" wraps the repository in one folder, and monorepos keep the
-  //  Android project in a sub-folder, e.g. repo-main/android/)
+  // ── locate the project: Gradle wrapper, or a framework root ───────────────
+  // (a GitHub "Download ZIP" wraps the repository in one folder)
   const prefixes = new Set<string>(['']);
   for (const f of files) {
     const parts = f.split('/');
@@ -123,26 +122,107 @@ export async function inspectZip(
   }
   const has = (p: string, rel: string) => files.has(p + rel);
   const wrapperFiles = ['gradlew', 'gradle/wrapper/gradle-wrapper.properties', 'gradle/wrapper/gradle-wrapper.jar'];
-  const candidates = [...prefixes].filter(
+  const gradleCandidates = [...prefixes].filter(
     (p) => wrapperFiles.every((w) => has(p, w)) &&
       (has(p, 'settings.gradle') || has(p, 'settings.gradle.kts') || has(p, 'build.gradle') || has(p, 'build.gradle.kts')),
   );
+  const frameworkRoots = topPrefixes(await findFrameworkRoots(zipPath, prefixes, has));
 
-  if (candidates.length === 0) {
+  if (frameworkRoots.length > 1) {
+    fail(`Several Android projects found in the archive (${frameworkRoots.map((c) => c || '.').slice(0, 5).join(', ')}); upload a ZIP with a single project.`);
+  }
+  if (frameworkRoots.length === 1) {
+    const root = frameworkRoots[0];
+    const outside = gradleCandidates.filter((g) => g !== root && !g.startsWith(root));
+    if (outside.length > 0) {
+      fail(`Several Android projects found in the archive (${[root || '.', ...outside].slice(0, 5).join(', ')}); upload a ZIP with a single project.`);
+    }
+    return { rootPrefix: root, entries: entries.length, totalBytes: total };
+  }
+
+  if (gradleCandidates.length === 0) {
     const anyGradle = [...files].some((f) => /(^|\/)(build|settings)\.gradle(\.kts)?$/.test(f));
-    if (!anyGradle) fail('No Gradle project found: the ZIP must contain build.gradle / settings.gradle.');
+    if (!anyGradle) {
+      fail('No Gradle project found: the ZIP must contain an Android (Gradle), Flutter, React Native, Expo, Capacitor or Cordova project.');
+    }
     fail(
       'The Gradle wrapper is missing. Include gradlew, gradle/wrapper/gradle-wrapper.properties and ' +
       'gradle/wrapper/gradle-wrapper.jar at the project root (or inside a sub-folder).',
     );
   }
-  if (candidates.length > 1) {
-    fail(`Several Android Gradle projects found in the archive (${candidates.map((c) => c || '.').slice(0, 5).join(', ')}); upload a ZIP with a single project.`);
+  if (gradleCandidates.length > 1) {
+    fail(`Several Android Gradle projects found in the archive (${gradleCandidates.map((c) => c || '.').slice(0, 5).join(', ')}); upload a ZIP with a single project.`);
   }
-  const root = candidates[0];
+  const root = gradleCandidates[0];
   if (![...files].some((f) => f.startsWith(root) && f.endsWith('AndroidManifest.xml'))) {
     fail('No AndroidManifest.xml found: this does not look like a native Android project.');
   }
 
   return { rootPrefix: root, entries: entries.length, totalBytes: total };
+}
+
+function topPrefixes(candidates: string[]): string[] {
+  return candidates.filter((c) => !candidates.some((o) => o !== c && c.startsWith(o)));
+}
+
+async function findFrameworkRoots(
+  zipPath: string,
+  prefixes: Set<string>,
+  has: (prefix: string, rel: string) => boolean,
+): Promise<string[]> {
+  const found: string[] = [];
+  for (const p of prefixes) {
+    const parts = p.split('/').filter(Boolean);
+    if (parts.includes('node_modules') || parts.includes('res') || parts.includes('platforms')) continue;
+    if (has(p, 'pubspec.yaml')) { found.push(p); continue; }
+    if (has(p, 'capacitor.config.ts') || has(p, 'capacitor.config.js') || has(p, 'capacitor.config.json')) {
+      found.push(p);
+      continue;
+    }
+    if (has(p, 'config.xml')) {
+      const xml = await readZipEntry(zipPath, p + 'config.xml');
+      if (xml && /<widget[\s>]/.test(xml)) { found.push(p); continue; }
+    }
+    if (has(p, 'package.json')) {
+      const text = await readZipEntry(zipPath, p + 'package.json');
+      if (text && packageDeclaresAndroidStack(text)) found.push(p);
+    }
+  }
+  return found;
+}
+
+function packageDeclaresAndroidStack(text: string): boolean {
+  try {
+    const pkg = JSON.parse(text);
+    const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
+    return Boolean(
+      deps.expo || deps['react-native'] || deps['@capacitor/core'] || deps['@capacitor/android']
+      || deps.cordova || deps['cordova-android'] || pkg.cordova,
+    );
+  } catch {
+    return false;
+  }
+}
+
+function readZipEntry(zipPath: string, entryName: string, max = 1_000_000): Promise<string | null> {
+  return new Promise((resolve) => {
+    yauzl.open(zipPath, { lazyEntries: true, autoClose: true }, (err, zip) => {
+      if (err || !zip) return resolve(null);
+      const done = (value: string | null) => { try { zip.close(); } catch { /* already closed */ } resolve(value); };
+      zip.on('entry', (entry) => {
+        if (entry.fileName !== entryName) { zip.readEntry(); return; }
+        if (entry.uncompressedSize > max) return done(null);
+        zip.openReadStream(entry, (streamErr, stream) => {
+          if (streamErr || !stream) return done(null);
+          const chunks: Buffer[] = [];
+          stream.on('data', (chunk) => chunks.push(chunk));
+          stream.on('end', () => done(Buffer.concat(chunks).toString('utf8')));
+          stream.on('error', () => done(null));
+        });
+      });
+      zip.on('end', () => done(null));
+      zip.on('error', () => done(null));
+      zip.readEntry();
+    });
+  });
 }

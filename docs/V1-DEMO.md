@@ -2,8 +2,7 @@
 
 Périmètre V1 : un projet Android Gradle (avec wrapper) importé en ZIP ou par URL GitHub est compilé avec
 `assembleDebug` dans un conteneur jetable, puis l'APK debug (signé avec la clé debug
-Android) est téléchargeable par son propriétaire uniquement (sauf s'il crée lui-même un lien de partage public valable 7 jours). Release et AAB sont hors
-périmètre (désactivés tant que `ENABLE_RELEASE_BUILDS` n'est pas `true`).
+Android) est téléchargeable par son propriétaire uniquement (sauf s'il crée lui-même un lien de partage public valable 7 jours). Les APK release et les AAB sont activés par défaut et signés avec `KEYSTORE_*` s'il est défini, sinon avec une clé d'upload générée par le worker. `ENABLE_RELEASE_BUILDS=false` revient au debug seul.
 
 ## Rejouer la démo en local
 
@@ -63,7 +62,7 @@ et dans la branche `ci-evidence` (`runs/<sha>-<run>/`).
 | `BUILD_MAX_WORKSPACE_MB` | `4096` | quota disque (surveillé, le conteneur est tué au-delà) |
 | `ZIP_MAX_UPLOAD_MB` / `ZIP_MAX_EXTRACTED_MB` / `ZIP_MAX_FILE_MB` | `200` / `1024` / `256` | limites d'import |
 | `RETENTION_HOURS` | `24` | purge des sources et artefacts |
-| `ENABLE_RELEASE_BUILDS` | `false` | hors périmètre V1 |
+| `ENABLE_RELEASE_BUILDS` | `true` | `false` pour n'autoriser que les APK debug |
 
 ## Limites connues (à lever avant d'ouvrir à des tiers)
 

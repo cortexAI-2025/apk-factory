@@ -198,7 +198,7 @@ export function NewProjectModal({ initialTab = 'github', onClose, onSuccess }: P
                   <li>Branch or folder: <code className="text-gray-400">…/tree/main/android</code></li>
                   <li>ZIP link: <code className="text-gray-400">…/archive/refs/heads/main.zip</code></li>
                 </ul>
-                <p className="text-xs text-gray-600 mt-2">Public repositories only. The project needs its Gradle wrapper (gradlew).</p>
+                <p className="text-xs text-gray-600 mt-2">Public repositories only. Java, Kotlin, Flutter, React Native, Expo, Capacitor and Cordova.</p>
               </div>
 
               <div>

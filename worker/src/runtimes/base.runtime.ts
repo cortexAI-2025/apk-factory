@@ -165,11 +165,13 @@ export abstract class BaseDockerRuntime implements IRuntime {
    * The in-container argv for a given command string. Public (pure, no I/O)
    * so tests exercise the exact split/wrap logic without spawning Docker.
    * shell=false (Android Native): split on whitespace, append Gradle flags.
-   * shell=true (RN CLI, Expo): run the full multi-step script via bash -lc.
+   * shell=true (RN CLI, Expo): run the full multi-step script via bash -c.
+   * A login shell (-l) is intentionally not used: /etc/profile replaces PATH
+   * and drops Flutter, the Android SDK and Node from the image environment.
    */
   buildCommandArgv(gradleCommand: string, shell: boolean): string[] {
     return shell
-      ? ['bash', '-lc', gradleCommand]
+      ? ['bash', '-c', gradleCommand]
       : [...gradleCommand.trim().split(/\s+/), '--no-daemon', '--stacktrace', '--console=plain'];
   }
 
@@ -211,8 +213,11 @@ export abstract class BaseDockerRuntime implements IRuntime {
       '--read-only',
       '--init',
       // /tmp holds the Gradle home, Android user home and dex temp files — needs exec
-      '--tmpfs', '/tmp:size=2g,exec,mode=1777',
+      '--tmpfs', `/tmp:size=${process.env.BUILD_TMPFS_SIZE || '2g'},exec,mode=1777`,
       '--volume', `${projectPath}:/workspace:rw`,
+      // Flutter's cache lock is a symlink to /tmp/flutter-cache.lock inside the
+      // image. A file bind-mount onto that path is itself read-only when the
+      // container root is --read-only (Docker returns EROFS), so it is not mounted.
       ...(opts.extraVolumes || []),
       // ── environment: explicit allow-list, never the worker's own env ──
       '--env', 'ANDROID_HOME=/opt/android-sdk',

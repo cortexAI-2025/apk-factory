@@ -10,6 +10,7 @@ import { createHash } from 'crypto';
 import { createReadStream } from 'fs';
 import { findBuildArtifact, listBuildArtifacts } from '../artifacts';
 import { SANDBOX } from '../../security/sandbox-config';
+import { signReleaseArtifact } from '../../signing/release-signing';
 
 export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', '─── Stage 6/6: OUTPUT ──────────────────────────────');
@@ -30,11 +31,23 @@ export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
 
   await ctx.log('info', `APK found: ${path.relative(ctx.projectRoot, apkPath)}`);
 
+  let outputPath = apkPath;
+  try {
+    const signed = await signReleaseArtifact(apkPath);
+    outputPath = signed.path;
+    await ctx.log('info', signed.action === 'signed'
+      ? `Signed ${ctx.buildType} with the ${signed.source === 'env' ? 'KEYSTORE_PATH' : 'factory upload'} key (outside the sandbox)`
+      : 'Artifact already carries the project signature — factory key not applied');
+  } catch (err: any) {
+    return { ok: false, fatal: true, error: `Release signing failed: ${err.message}` };
+  }
+
   // ── 2. Validate APK size ──────────────────────────────────────────────────
-  const stat = await fs.stat(apkPath);
+  const stat = await fs.stat(outputPath);
   const apkSize = stat.size;
 
   if (apkSize === 0) {
+    if (outputPath !== apkPath) await fs.rm(path.dirname(outputPath), { recursive: true, force: true }).catch(() => {});
     return { ok: false, fatal: true, error: 'APK file is empty (0 bytes)' };
   }
 
@@ -45,15 +58,27 @@ export async function stageOutput(ctx: PipelineContext): Promise<StageResult> {
   await ctx.log('info', `APK size: ${(apkSize / 1024 / 1024).toFixed(2)} MB`);
 
   // ── 3. Upload artifact via API ───────────────────────────────────────────
-  await ctx.log('info', `Uploading APK...`);
+  await ctx.log('info', `Uploading ${ctx.buildType === 'AAB' ? 'AAB' : 'APK'}...`);
   try {
-    const uploadResult = await ctx.uploadApk(apkPath);
+    const digest = await sha256(outputPath);
+    const uploadResult = await ctx.uploadApk(outputPath, {
+      fileName: path.basename(apkPath),
+      variant: 'release',
+      abi: 'universal',
+      module: '',
+      recommended: true,
+      sha256: digest,
+    });
     ctx.apkUrl = uploadResult.apkUrl;
     ctx.apkSize = apkSize;
     await ctx.log('info', `✓ APK uploaded successfully (${(apkSize / 1024 / 1024).toFixed(2)} MB)`);
   } catch (err: any) {
     await ctx.log('error', `Failed to upload APK: ${err.message}`);
     return { ok: false, fatal: true, error: `APK upload failed: ${err.message}` };
+  } finally {
+    if (outputPath !== apkPath) {
+      await fs.rm(path.dirname(outputPath), { recursive: true, force: true }).catch(() => {});
+    }
   }
 
   // ── 4. Cleanup workspace ──────────────────────────────────────────────────

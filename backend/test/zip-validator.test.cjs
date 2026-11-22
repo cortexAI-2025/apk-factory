@@ -45,6 +45,22 @@ test('accepts a monorepo ZIP: repository folder + android sub-folder', async (t)
   const f = make(t, [...project('repo-main/android/'), { name: 'repo-main/README.md' }, { name: 'repo-main/web/package.json' }]);
   assert.equal((await inspectZip(f, head(f))).rootPrefix, 'repo-main/android/');
 });
+// Regression (CI run 45010282049, "API checks"): the e2e fed the validator a GitHub ZIP of this
+// whole repository, which holds examples/reference-android AND examples/reference-kotlin.
+// The validator must refuse to guess and must name both candidates so the user can pick one
+// (via a /tree/<branch>/<folder> URL or a ZIP of a single project).
+test('a whole-repository ZIP with several Gradle projects is rejected, naming each candidate', async (t) => {
+  const f = make(t, [
+    ...project('repo-branch/examples/reference-android/'),
+    ...project('repo-branch/examples/reference-kotlin/'),
+    { name: 'repo-branch/README.md' },
+  ]);
+  await rejects(inspectZip(f, head(f)), /Several Android Gradle projects[^]*examples\/reference-android\/[^]*examples\/reference-kotlin\//);
+});
+test('the same repository ZIP restricted to one project is accepted', async (t) => {
+  const f = make(t, [...project('repo-branch/examples/reference-android/'), { name: 'repo-branch/README.md' }]);
+  assert.equal((await inspectZip(f, head(f))).rootPrefix, 'repo-branch/examples/reference-android/');
+});
 test('does not look deeper than three folders', async (t) => {
   const f = make(t, project('a/b/c/d/'));
   await rejects(inspectZip(f, head(f)), /wrapper is missing|No Gradle/);
@@ -71,6 +87,26 @@ test('rejects a missing Gradle wrapper with an actionable message', async (t) =>
 test('rejects an archive without any Gradle build file', async (t) => {
   const f = make(t, [{ name: 'readme.txt' }]);
   await rejects(inspectZip(f, head(f)), /No Gradle project/);
+});
+
+test('accepts a Flutter project that has no Gradle wrapper yet', async (t) => {
+  const f = make(t, [
+    { name: 'App/pubspec.yaml', data: 'name: demo\n' },
+    { name: 'App/lib/main.dart', data: 'void main() {}' },
+  ]);
+  assert.equal((await inspectZip(f, head(f))).rootPrefix, 'App/');
+});
+
+test('a Flutter repo ZIP is rooted at pubspec.yaml, not at android/', async (t) => {
+  const f = make(t, [
+    { name: 'demo/pubspec.yaml', data: 'name: demo\n' },
+    { name: 'demo/android/gradlew', mode: 0o100755 },
+    { name: 'demo/android/gradle/wrapper/gradle-wrapper.properties' },
+    { name: 'demo/android/gradle/wrapper/gradle-wrapper.jar' },
+    { name: 'demo/android/settings.gradle' },
+    { name: 'demo/android/app/src/main/AndroidManifest.xml', data: '<manifest/>' },
+  ]);
+  assert.equal((await inspectZip(f, head(f))).rootPrefix, 'demo/');
 });
 test('rejects a Gradle project that is not Android', async (t) => {
   const f = make(t, project().filter((e) => !e.name.endsWith('AndroidManifest.xml')));

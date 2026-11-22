@@ -13,6 +13,7 @@ export type Framework =
   | 'EXPO_MANAGED'
   | 'EXPO_BARE'
   | 'CAPACITOR'
+  | 'CORDOVA'
   | 'VITE_WEB'
   | 'NEXTJS_WEB'
   | 'FLUTTER'
@@ -37,6 +38,12 @@ export interface FrameworkVersions {
   vite?: string;
   capacitorCore?: string;
   capacitorAndroid?: string;
+  cordovaAndroid?: string;
+  ionic?: string;
+  /** Set for Android native projects: Kotlin sources, Java sources, or both. */
+  nativeLanguage?: 'kotlin' | 'java' | 'mixed';
+  /** 'sdk' when pubspec.yaml depends on the Flutter SDK. */
+  flutter?: string;
   kotlin?: string;
   gradle?: string;
   agp?: string;

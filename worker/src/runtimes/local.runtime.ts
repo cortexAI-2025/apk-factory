@@ -8,40 +8,63 @@
  *
  * Activated via: RUNTIME=local
  */
-import { spawn } from 'child_process';
-import * as fs from 'fs/promises';
+import { spawn, execFileSync } from 'child_process';
+import * as fs from 'fs';
+import * as fsp from 'fs/promises';
 import * as path from 'path';
 import { IRuntime, ContainerRunOptions, ContainerRunResult, RuntimeInfo } from './runtime.interface';
 
-/** Env vars forwarded to the build process. */
-const BUILD_ENV: Record<string, string | undefined> = {
-  ANDROID_HOME:      process.env.ANDROID_HOME      || '/opt/android-sdk',
-  ANDROID_SDK_ROOT:  process.env.ANDROID_SDK_ROOT  || '/opt/android-sdk',
-  JAVA_HOME:         process.env.JAVA_HOME          || '/usr/lib/jvm/java-21-openjdk-amd64',
-  PATH: [
-    '/opt/android-sdk/build-tools/37.0.0',
-    '/opt/android-sdk/platform-tools',
-    '/opt/android-sdk/cmdline-tools/latest/bin',
-    '/usr/local/sbin',
-    '/usr/local/bin',
-    '/usr/sbin',
-    '/usr/bin',
-    '/sbin',
-    '/bin',
-    process.env.PATH,
-  ].filter(Boolean).join(':'),
-  GRADLE_OPTS:      '-Dorg.gradle.daemon=false -Xmx2048m -Dfile.encoding=UTF-8',
-  GRADLE_USER_HOME: process.env.GRADLE_USER_HOME || '/tmp/apk-local-gradle',
-  HOME:             process.env.HOME || '/tmp/apk-local-home',
-  TERM:             'dumb',
-  CI:               'true',
-  // Forward the agent proxy so Gradle can reach Maven repositories.
-  JAVA_TOOL_OPTIONS: process.env.JAVA_TOOL_OPTIONS || '',
-  HTTPS_PROXY:      process.env.HTTPS_PROXY || '',
-  HTTP_PROXY:       process.env.HTTP_PROXY  || '',
-  https_proxy:      process.env.HTTPS_PROXY || '',
-  http_proxy:       process.env.HTTP_PROXY  || '',
-};
+function detectJavaHome(): string {
+  if (process.env.JAVA_HOME && fs.existsSync(path.join(process.env.JAVA_HOME, 'bin', 'java'))) {
+    return process.env.JAVA_HOME;
+  }
+  try {
+    const bin = execFileSync('readlink', ['-f', execFileSync('which', ['java'], { encoding: 'utf8' }).trim()], { encoding: 'utf8' }).trim();
+    return path.dirname(path.dirname(bin));
+  } catch {
+    return '/usr/lib/jvm/java-17-openjdk-amd64';
+  }
+}
+
+function newestBuildTools(androidHome: string): string | undefined {
+  try {
+    const dir = path.join(androidHome, 'build-tools');
+    const versions = fs.readdirSync(dir).filter((name) => fs.statSync(path.join(dir, name)).isDirectory());
+    versions.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const last = versions[versions.length - 1];
+    return last ? path.join(dir, last) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function buildEnv(): NodeJS.ProcessEnv {
+  const androidHome = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || '/opt/android-sdk';
+  const javaHome = detectJavaHome();
+  const buildTools = newestBuildTools(androidHome);
+  return {
+    ...process.env,
+    ANDROID_HOME: androidHome,
+    ANDROID_SDK_ROOT: process.env.ANDROID_SDK_ROOT || androidHome,
+    JAVA_HOME: javaHome,
+    FLUTTER_HOME: process.env.FLUTTER_HOME || '/opt/flutter',
+    PUB_CACHE: process.env.PUB_CACHE || path.join(process.env.HOME || '/tmp/apk-local-home', '.pub-cache'),
+    PATH: [
+      buildTools,
+      path.join(androidHome, 'platform-tools'),
+      path.join(androidHome, 'cmdline-tools', 'latest', 'bin'),
+      path.join(javaHome, 'bin'),
+      process.env.FLUTTER_HOME ? path.join(process.env.FLUTTER_HOME, 'bin') : '/opt/flutter/bin',
+      '/usr/local/bin',
+      process.env.PATH,
+    ].filter(Boolean).join(':'),
+    GRADLE_OPTS: process.env.GRADLE_OPTS || '-Dorg.gradle.daemon=false -Xmx2048m -Dfile.encoding=UTF-8',
+    GRADLE_USER_HOME: process.env.GRADLE_USER_HOME || '/tmp/apk-local-gradle',
+    HOME: process.env.HOME || '/tmp/apk-local-home',
+    TERM: 'dumb',
+    CI: 'true',
+  };
+}
 
 export class LocalRuntime implements IRuntime {
   readonly name = 'local';
@@ -74,23 +97,21 @@ export class LocalRuntime implements IRuntime {
 
     // Make gradlew executable if present
     if (!shell) {
-      try { await fs.chmod(path.join(projectPath, 'gradlew'), 0o755); } catch {}
+      try { await fsp.chmod(path.join(projectPath, 'gradlew'), 0o755); } catch {}
     }
 
-    // Ensure Gradle home exists
-    await fs.mkdir(BUILD_ENV.GRADLE_USER_HOME!, { recursive: true });
-    await fs.mkdir(BUILD_ENV.HOME!, { recursive: true });
+    const env = buildEnv();
+    await fsp.mkdir(env.GRADLE_USER_HOME!, { recursive: true });
+    await fsp.mkdir(env.HOME!, { recursive: true });
 
     // Build argv
     const argv: string[] = shell
-      ? ['bash', '-lc', gradleCommand]
+      ? ['bash', '-c', gradleCommand]
       : [...gradleCommand.trim().split(/\s+/), '--no-daemon', '--stacktrace', '--console=plain'];
 
     onLog(`[local] Command:  ${argv.join(' ')}`, 'stdout');
 
     return new Promise((resolve) => {
-      const env: NodeJS.ProcessEnv = { ...process.env, ...BUILD_ENV };
-
       const proc = spawn(argv[0], argv.slice(1), {
         cwd: projectPath,
         env,
@@ -161,8 +182,8 @@ export class LocalRuntime implements IRuntime {
       [/> Task :[\w:]*:compileDebugKotlin/, 40, 'Compiling Kotlin'],
       [/> Task :[\w:]*:compileDebugJava/,   50, 'Compiling Java'],
       [/> Task :[\w:]*:mergeDebugRes/,      60, 'Merging Resources'],
-      [/> Task :[\w:]*:packageDebug/,       85, 'Packaging APK'],
-      [/> Task :[\w:]*:assembleDebug/,      95, 'Assembling'],
+      [/> Task :[\w:]*:package(Debug|Release)/, 85, 'Packaging'],
+      [/> Task :[\w:]*:(assembleDebug|assembleRelease|bundleRelease)/, 95, 'Assembling'],
       [/BUILD SUCCESSFUL/,                 100, 'Done'],
     ];
     for (const [rx, pct, phase] of table) {

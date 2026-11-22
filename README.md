@@ -1,10 +1,10 @@
 # APK Factory
 
-> **ZIP / GitHub / AI → APK in 1 click**
+> **ZIP / GitHub → APK or AAB**
 
-A production-ready SaaS platform that automatically builds, fixes and packages Android projects into installable APKs — no Android Studio required.
+A production-ready platform that builds Android projects into installable APKs and Play App Bundles — no Android Studio required.
 
----
+**Stacks:** Java, Kotlin, Flutter, React Native CLI, Expo (prebuild, no EAS), Capacitor (including Ionic), Cordova. Import a public GitHub repository or a ZIP, pick Debug APK, Release APK or AAB, and download the artifact. Release builds are signed with `KEYSTORE_*` or with the factory upload key.
 
 > **V1 demo (ZIP → debug APK):** see [docs/V1-DEMO.md](docs/V1-DEMO.md) for the replay steps, the CI checks and the known limits.
 
@@ -350,3 +350,62 @@ This check uses the actual API, queue, sandbox and storage: it cannot run withou
 a configured stack. It does not verify release signing, APK installation,
 device behaviour, frontend interactions, or GitHub import. Release outputs can
 be unsigned until custom keystore support is implemented.
+
+## Android build engines (V1)
+
+Every engine produces three outputs, built in the isolated Docker builder image
+(`docker/android-builder`, read-only root, restricted egress proxy) and downloaded through the API:
+
+| Output | Gradle task | Signing |
+|---|---|---|
+| APK DEBUG | `assembleDebug` | Android debug key |
+| APK RELEASE | `assembleRelease` | factory upload key, applied by the worker outside the sandbox (`apksigner`) |
+| AAB RELEASE | `bundleRelease` | factory upload key (`jarsigner`) |
+
+A release artifact the project already signed with its **own** release key is kept; the Android debug key is
+never accepted as a release signature (React Native / Expo / Flutter templates are rewritten on the workspace
+copy). To use your own key set `KEYSTORE_PATH`, `KEYSTORE_PASSWORD`, `KEYSTORE_ALIAS` and `KEY_PASSWORD` on the worker.
+
+### Engine status
+
+Certified by the CI run [`45022217047`](https://github.com/cortexAI-2025/apk-factory/actions/runs/45022217047)
+(commit `b66a8fa`): each build is requested over HTTP, compiled in Docker, then the artifact is downloaded and
+checked (SHA-256, package, versionName, `apksigner` / `jarsigner` signature, signer is not the debug key).
+
+| Engine | DEBUG | RELEASE | AAB | Status |
+|---|---|---|---|---|
+| Java | ✅ | ✅ | ✅ | **Supported** — [job](https://github.com/cortexAI-2025/apk-factory/actions/runs/45022217047/job/137207416593) |
+| Kotlin | ✅ | ✅ | ✅ | **Supported** — same job |
+| React Native CLI | ✅ | ✅ | ✅ | **Supported** — [job](https://github.com/cortexAI-2025/apk-factory/actions/runs/45022217047/job/137207416621) |
+| Capacitor | ✅ | ✅ | ✅ | **Supported** — [job](https://github.com/cortexAI-2025/apk-factory/actions/runs/45022217047/job/137207417973) |
+| Cordova | ✅ | ✅ | ✅ | **Supported** — same job |
+| ZIP / GitHub URL import | ✅ | – | – | **Supported** — [job](https://github.com/cortexAI-2025/apk-factory/actions/runs/45022217047/job/137207416657) |
+| Expo (managed) | ❌ | not reached | not reached | **Optional, not certified** |
+| Flutter | ❌ | not reached | not reached | **Optional, not certified** |
+
+Expo and Flutter engines are kept in the code base and can be selected, but are **not certified** in V1:
+
+* **Expo** — `expo-modules-core:configureCMakeDebug[arm64-v8a]` fails with `[CXX1210] No compatible library found`
+  (Expo SDK 51 / React Native 0.74.5 fixture, NDK 27.1). The CMake output is printed on failure
+  (`[diagnostics]` lines) but the root cause is not established yet.
+* **Flutter** — the SDK starts and `flutter create` / `pub get` run in the read-only sandbox; Gradle then fails to
+  resolve `org.jetbrains.kotlin:kotlin-gradle-plugin:2.3.20` (Flutter 3.50.1 template).
+
+### Commands
+
+```bash
+# unit tests + typecheck (what the "Typecheck and unit tests" CI job runs)
+(cd backend && npm ci && npx prisma generate && npx tsc --noEmit -p . && npm test)
+(cd worker  && npm ci --ignore-scripts && npm test)
+(cd frontend && npm ci && npx tsc --noEmit -p .)
+
+# build the builder image, then certify engines over HTTP (needs Docker, Postgres and Redis; see .github/workflows/ci.yml)
+docker build -f docker/android-builder/Dockerfile -t apk-factory/android-builder:latest .
+FRAMEWORKS=java,kotlin   node e2e/frameworks.cjs     # also: react-native | capacitor,cordova | expo | flutter
+```
+
+Evidence of a run (logs, per-build reports, artifact checks) is uploaded by CI as the `frameworks-*` artifacts.
+
+CI jobs `HTTP Docker native`, `webview` and `react-native` and the ZIP job are **blocking**. `HTTP Docker expo` and
+`HTTP Docker flutter` are labelled *experimental, non-blocking* (`continue-on-error`): they run on every push and
+report their result, but never fail the workflow.

@@ -124,7 +124,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
       UPLOADS_PATH: /app/uploads
-      ENABLE_RELEASE_BUILDS: ${ENABLE_RELEASE_BUILDS:-false}
+      ENABLE_RELEASE_BUILDS: ${ENABLE_RELEASE_BUILDS:-true}
       ZIP_MAX_UPLOAD_MB: ${ZIP_MAX_UPLOAD_MB:-200}
       ZIP_MAX_EXTRACTED_MB: ${ZIP_MAX_EXTRACTED_MB:-1024}
       ZIP_MAX_FILE_MB: ${ZIP_MAX_FILE_MB:-256}
@@ -214,8 +214,10 @@ services:
       BUILD_NETWORK_MODE: ${BUILD_NETWORK_MODE:-restricted}
       BUILD_NETWORK_NAME: apk-build-net
       BUILD_PROXY_URL: http://apk-egress-proxy:3128
-      ENABLE_RELEASE_BUILDS: ${ENABLE_RELEASE_BUILDS:-false}
+      ENABLE_RELEASE_BUILDS: ${ENABLE_RELEASE_BUILDS:-true}
       UPLOADS_PATH: /app/uploads
+      # Persistent upload key. Not mounted into build containers.
+      APK_FACTORY_KEY_DIR: /var/lib/apk-factory/signing
 
       ANDROID_HOME: /opt/android-sdk
       GRADLE_CACHE_DIR: /opt/gradle-home
@@ -227,6 +229,7 @@ services:
       - uploads_data:/app/uploads
       - ${WORKSPACE_HOST_DIR:-/srv/apk-factory/workspaces}:${WORKSPACE_HOST_DIR:-/srv/apk-factory/workspaces}
       - ${MAVEN_CACHE_DIR:-/srv/apk-factory/maven-cache}:${MAVEN_CACHE_DIR:-/srv/apk-factory/maven-cache}:ro
+      - signing_data:/var/lib/apk-factory/signing
 
     depends_on:
       redis:
@@ -277,6 +280,7 @@ volumes:
   postgres_data:
   redis_data:
   uploads_data:
+  signing_data:
 
 networks:
   # Internal: containers on it have no route to the internet or the host

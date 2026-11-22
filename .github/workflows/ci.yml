@@ -9,12 +9,18 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Keyed by commit so a follow-up push does not cancel a certification already running.
+  group: ci-${{ github.ref }}-${{ github.sha }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash --noprofile --norc -eo pipefail {0}
 
 jobs:
   checks:
     name: Typecheck and unit tests
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -48,8 +54,9 @@ jobs:
 
   e2e:
     name: ZIP to debug APK (real build, isolation, emulator)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-24.04
-    timeout-minutes: 75
+    timeout-minutes: 180
     permissions:
       contents: write   # push test evidence to the ci-evidence branch
     env:
@@ -228,3 +235,158 @@ jobs:
           echo "{\"sha\":\"${GITHUB_SHA}\",\"run\":\"${GITHUB_RUN_ID}\",\"ref\":\"${GITHUB_REF_NAME}\",\"url\":\"${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}\"}" > "$RUN_DIR/meta.json"
           git config user.name "github-actions[bot]" && git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A && git commit -q -m "CI evidence for ${GITHUB_SHA::7} (run ${GITHUB_RUN_ID})" && git push -q origin HEAD:ci-evidence || echo "::warning::could not push evidence"
+
+  frameworks:
+    name: HTTP Docker ${{ matrix.id }}${{ matrix.experimental && ' (experimental, non-blocking)' || '' }}
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
+    runs-on: ubuntu-24.04
+    timeout-minutes: 360
+    # Experimental engines (Expo, Flutter) are built and reported on every run but never fail the workflow.
+    continue-on-error: ${{ matrix.experimental == true }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Certified engines: a failure blocks the PR.
+          - id: native
+            set: java,kotlin
+          - id: webview
+            set: capacitor,cordova
+          - id: react-native
+            set: react-native
+          # Experimental engines: kept selectable, not certified in V1.
+          - id: expo
+            set: expo
+            experimental: true
+          - id: flutter
+            set: flutter
+            experimental: true
+    env:
+      E2E_OUT: ${{ github.workspace }}/e2e-out
+      UPLOADS_PATH: /tmp/apk-factory-uploads
+      WORKSPACE_DIR: /tmp/apk-factory/workspaces
+      DATABASE_URL: postgresql://apk_user:ci_pg_password@localhost:5432/apk_factory
+      REDIS_PASSWORD: ci_redis_password
+      JWT_SECRET: ci-jwt-secret-value-0123456789
+      WORKER_SECRET: ci-worker-secret-value-0123456789
+      ARTIFACT_MAX_MB: '200'
+      E2E_WORKER_SECRET: ci-worker-secret-value-0123456789
+      E2E_UPLOADS_PATH: /tmp/apk-factory-uploads
+      FRAMEWORKS: ${{ matrix.set }}
+      FRAMEWORK_VARIANTS: DEBUG,RELEASE,AAB
+      E2E_TIMEOUT_MS: '2400000'
+      BUILDER_IMAGE: apk-factory/android-builder:latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: apk_factory
+          POSTGRES_USER: apk_user
+          POSTGRES_PASSWORD: ci_pg_password
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U apk_user -d apk_factory" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Host JDK for release signing
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends openjdk-17-jdk-headless unzip zip
+          java -version
+          keytool -help >/dev/null
+
+      - name: Disk before the image build
+        run: df -h
+
+      - name: Redis
+        run: docker run -d --name ci-redis -p 6379:6379 redis:7-alpine redis-server --requirepass "$REDIS_PASSWORD"
+
+      - uses: docker/setup-buildx-action@v3
+      - name: Build the Android builder image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: docker/android-builder/Dockerfile
+          tags: apk-factory/android-builder:latest
+          load: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image digest and toolchain
+        run: |
+          mkdir -p "$E2E_OUT"
+          docker image inspect apk-factory/android-builder:latest --format 'id={{.Id}} size={{.Size}} created={{.Created}}' | tee "$E2E_OUT/image.txt"
+          docker run --rm --user 0 --entrypoint bash -v "$PWD/scripts/toolchain-check.sh:/tmp/toolchain-check.sh:ro" apk-factory/android-builder:latest /tmp/toolchain-check.sh "$FRAMEWORKS" | tee "$E2E_OUT/toolchain.txt"
+
+      - name: Host apksigner from the image
+        run: |
+          cid=$(docker create apk-factory/android-builder:latest)
+          rm -rf /tmp/bt && mkdir -p /tmp/bt
+          docker cp "$cid:/opt/android-sdk/build-tools/37.0.0" /tmp/bt/37.0.0
+          docker rm "$cid"
+          sudo mkdir -p /opt/android-sdk/build-tools
+          sudo rm -rf /opt/android-sdk/build-tools/37.0.0
+          sudo mv /tmp/bt/37.0.0 /opt/android-sdk/build-tools/37.0.0
+          sudo chmod -R a+rX /opt/android-sdk
+          test -x /opt/android-sdk/build-tools/37.0.0/apksigner
+          echo "ANDROID_HOME=/opt/android-sdk" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> "$GITHUB_ENV"
+
+      - name: Egress allow-list proxy + internal build network
+        run: bash scripts/egress-proxy-up.sh
+
+      - name: Install, migrate and build API + worker
+        run: |
+          (cd backend && npm ci --no-audit --no-fund && npx prisma generate && npx prisma migrate deploy && npm run build)
+          (cd worker && npm ci --ignore-scripts --no-audit --no-fund && npm run build)
+          mkdir -p "$UPLOADS_PATH" "$E2E_OUT" "$WORKSPACE_DIR" && chmod 1777 "$WORKSPACE_DIR"
+
+      - name: Start backend
+        run: |
+          export NODE_ENV=production PORT=4000 REDIS_HOST=localhost REDIS_PORT=6379
+          export API_BASE_URL=http://localhost:4000 FRONTEND_URL=http://localhost:3000
+          (cd backend && nohup node dist/main > "$E2E_OUT/backend.log" 2>&1 &)
+          for i in $(seq 1 60); do curl -sf localhost:4000/api/v1/health >/dev/null && exit 0; sleep 2; done
+          echo "::error::API did not start"; tail -n 80 "$E2E_OUT/backend.log"; exit 1
+
+      - name: Start the build worker
+        run: |
+          docker exec ci-redis redis-cli -a "$REDIS_PASSWORD" FLUSHALL >/dev/null
+          mkdir -p /tmp/apk-factory-signing && chmod 700 /tmp/apk-factory-signing
+          export NODE_ENV=production REDIS_HOST=localhost REDIS_PORT=6379 API_BASE_URL=http://localhost:4000
+          export APK_FACTORY_KEY_DIR=/tmp/apk-factory-signing
+          export BUILD_NETWORK_MODE=restricted BUILD_PROXY_URL=http://apk-egress-proxy:3128 RUNTIME=docker
+          export BUILD_MEMORY=8g BUILD_CPUS=2 BUILD_TMPFS_SIZE=4g BUILD_TIMEOUT_MS=2400000 BUILD_MAX_WORKSPACE_MB=6144
+          export WORKER_CONCURRENCY=1 ANDROID_HOME=/opt/android-sdk ANDROID_SDK_ROOT=/opt/android-sdk
+          (cd worker && nohup node dist/index.js > "$E2E_OUT/worker.log" 2>&1 &)
+          for i in $(seq 1 30); do grep -q "Worker started" "$E2E_OUT/worker.log" && exit 0; sleep 1; done
+          echo "::error::worker did not start"; cat "$E2E_OUT/worker.log"; exit 1
+
+      - name: Certify frameworks over HTTP
+        working-directory: e2e
+        run: node frameworks.cjs | tee "$E2E_OUT/frameworks.txt"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## HTTP Docker certification (${{ matrix.id }})"
+            echo "Commit: \`${GITHUB_SHA}\`"
+            [ -f "$E2E_OUT/image.txt" ] && { echo '```'; cat "$E2E_OUT/image.txt"; echo '```'; }
+            [ -f "$E2E_OUT/frameworks-report.txt" ] && { echo '```'; cat "$E2E_OUT/frameworks-report.txt"; echo '```'; }
+            [ -f "$E2E_OUT/frameworks.txt" ] && { echo '```'; tail -n 60 "$E2E_OUT/frameworks.txt"; echo '```'; }
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frameworks-${{ matrix.id }}
+          path: e2e-out/
+          retention-days: 14
+          if-no-files-found: warn
+

@@ -40,8 +40,8 @@ const { WEB, OUT, check, sha256 } = L;
   await page.waitForURL('**/projects/*', { timeout: 30000 });
   const projectId = page.url().split('/projects/')[1].split(/[?#]/)[0];
   await shot('project');
-  check('build type is limited to debug APK', await page.getByText(/Debug APK/).first().isVisible() && !(await page.getByRole('button', { name: /^AAB$/ }).count()));
-  await page.getByRole('button', { name: /build apk/i }).click();
+  check('debug APK build is offered', await page.getByRole('button', { name: /build debug apk/i }).isVisible());
+  await page.getByRole('button', { name: /build debug apk/i }).click();
   await page.waitForURL('**/builds/*', { timeout: 60000 });
   const buildId = page.url().split('/builds/')[1].split(/[?#]/)[0];
 
@@ -93,7 +93,7 @@ const { WEB, OUT, check, sha256 } = L;
     await page.getByText('reference-android').first().click();
     await page.waitForURL('**/projects/*', { timeout: 30000 });
     if (process.env.E2E_STUB !== '1') {
-      await page.getByRole('button', { name: /build apk/i }).click();
+      await page.getByRole('button', { name: /build debug apk/i }).click();
       await page.waitForURL('**/builds/*', { timeout: 60000 });
       await page.waitForSelector('text=Build Successful', { timeout: Number(process.env.E2E_TIMEOUT_MS || 1500000) });
       await page.waitForSelector('[data-testid=artifact-row]', { timeout: 30000 });

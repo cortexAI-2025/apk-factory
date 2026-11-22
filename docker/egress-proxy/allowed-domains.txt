@@ -25,3 +25,8 @@ registry.yarnpkg.com
 # Without this entry, any React Native CLI or Expo build will fail at the
 # Gradle dependency-resolution phase (HTTP 403 or connect_rejected).
 repo.reactnative.dev
+
+# Flutter engine (pub get + pre-cached artifact refresh).
+pub.dev
+pub.dartlang.org
+storage.googleapis.com

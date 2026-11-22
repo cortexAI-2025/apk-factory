@@ -86,11 +86,12 @@ RUN set -eux; \
         arm64) NODE_ARCH=arm64 ;; \
         *) echo "unsupported architecture: ${ARCH}" >&2; exit 1 ;; \
     esac; \
-    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz" -O /tmp/node.tar.xz; \
-    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt" -O /tmp/node-SHASUMS256.txt; \
-    grep " node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.xz\$" /tmp/node-SHASUMS256.txt | sha256sum -c -; \
-    tar -xJf /tmp/node.tar.xz -C /usr/local --strip-components=1; \
-    rm -f /tmp/node.tar.xz /tmp/node-SHASUMS256.txt
+    cd /tmp; \
+    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz"; \
+    wget -q "https://nodejs.org/dist/v${NODE_VERSION}/SHASUMS256.txt"; \
+    grep " node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz\$" SHASUMS256.txt | sha256sum -c -; \
+    tar -xzf "node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" -C /usr/local --strip-components=1; \
+    rm -f "node-v${NODE_VERSION}-linux-${NODE_ARCH}.tar.gz" SHASUMS256.txt
 
 # npm ships with Node; pin pnpm/yarn via Corepack (no unversioned global CLI —
 # "npx expo"/"npx pnpm"/"yarn" always resolve the project's own declared
@@ -101,11 +102,98 @@ RUN corepack enable \
     && corepack prepare pnpm@9.12.3 --activate \
     && corepack prepare yarn@1.22.22 --activate
 
+# Cordova's platform tooling shells out to a system `gradle` to install the
+# project wrapper (cordova-android check_reqs). The wrapper alone is not enough.
+ENV GRADLE_VERSION=8.7
+RUN wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" -O /tmp/gradle.zip \
+    && unzip -q /tmp/gradle.zip -d /opt \
+    && chmod +x "/opt/gradle-${GRADLE_VERSION}/bin/gradle" \
+    && ln -sfn "/opt/gradle-${GRADLE_VERSION}/bin/gradle" /usr/local/bin/gradle \
+    && rm /tmp/gradle.zip
+
+# Flutter's first run downloads the Dart SDK with curl. wget is not accepted.
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# ── Flutter SDK (stable 3.50.1, precached for Android) ───────────────────────
+# The sandbox root filesystem is read-only at build time, so the engine stamp
+# script must exit when bin/cache is not writable and the stamp already exists.
+ENV FLUTTER_HOME=/opt/flutter \
+    FLUTTER_VERSION=3.50.1
+ENV PATH="/usr/local/bin:${FLUTTER_HOME}/bin:${PATH}"
+RUN printf '%s\n' \
+      '#!/bin/sh' \
+      '# --no-same-owner must come before the operation. Traditional "tar czf" has no leading dash.' \
+      'if [ -n "$1" ] && [ "${1#-}" = "$1" ]; then' \
+      '  op=$1' \
+      '  shift' \
+      '  set -- -"$op" "$@"' \
+      'fi' \
+      'exec /usr/bin/tar --no-same-owner "$@"' \
+      > /usr/local/bin/tar \
+    && chmod +x /usr/local/bin/tar \
+    && git clone --depth 1 --branch ${FLUTTER_VERSION} https://github.com/flutter/flutter.git ${FLUTTER_HOME} \
+    && git config --system --add safe.directory ${FLUTTER_HOME} \
+    # The SDK's own packages (flutter_tools' dependencies) must live where the unprivileged
+    # runtime user can read them: Flutter re-reads flutter_tools/.dart_tool/package_config.json
+    # on every create/pub get/build and runs `pub get` on its own tool (a WRITE under /opt) when
+    # any listed package directory is missing. Root's ~/.pub-cache is unreadable by builder.
+    # Scoped to these steps: at run time PUB_CACHE stays /tmp/pub-cache for the app's packages.
+    && mkdir -p /opt/pub-cache && export PUB_CACHE=/opt/pub-cache \
+    && CI=true ${FLUTTER_HOME}/bin/flutter config --no-analytics --no-cli-animations \
+    && CI=true ${FLUTTER_HOME}/bin/flutter precache --android
+COPY docker/android-builder/patch-flutter-readonly.js /tmp/patch-flutter-readonly.js
+RUN node /tmp/patch-flutter-readonly.js \
+    && rm /tmp/patch-flutter-readonly.js \
+    && chmod -R a+rX ${FLUTTER_HOME} /opt/pub-cache \
+    && rm -f ${FLUTTER_HOME}/bin/cache/lockfile \
+    && ln -s /tmp/flutter-cache.lock ${FLUTTER_HOME}/bin/cache/lockfile \
+    # Make sure the tool snapshot and its stamp exist as REAL files before they are moved
+    # to the seed: a missing flutter_tools.stamp makes Flutter rebuild (and write) at start.
+    && PUB_CACHE=/opt/pub-cache ${FLUTTER_HOME}/bin/flutter --version \
+    && test -s ${FLUTTER_HOME}/bin/cache/flutter_tools.stamp \
+    && test -f ${FLUTTER_HOME}/bin/cache/flutter_tools.snapshot \
+    && mkdir -p /opt/flutter-stamps \
+    && cd ${FLUTTER_HOME}/bin/cache \
+    && for s in *.stamp; do \
+         [ -e "$s" ] || continue; \
+         if [ ! -L "$s" ]; then mv "$s" "/opt/flutter-stamps/$s"; fi; \
+         ln -sfn "/tmp/flutter-stamps/$s" "$s"; \
+       done \
+    && for name in libimobiledevice libusbmuxd libplist openssl libimobiledeviceglue ios-deploy \
+         material_fonts flutter_web_sdk engine_stamp flutter_sdk gradle_wrapper \
+         android-sdk android-internal-build-artifacts font-subset flutter_version_check \
+         engine engine-dart-sdk; do \
+         if [ ! -e "${name}.stamp" ] && [ ! -L "${name}.stamp" ]; then ln -s "/tmp/flutter-stamps/${name}.stamp" "${name}.stamp"; fi; \
+       done
+
+# Stamps and the lockfile are symlinks into /tmp (empty in every fresh container). The
+# wrappers below seed them on every invocation, so `flutter`/`dart` work from any entry
+# point, not only through entrypoint.sh. Real SDK binaries are called by absolute path.
+COPY docker/android-builder/flutter-bootstrap.sh docker/android-builder/flutter-health.sh /usr/local/lib/apk-factory/
+COPY docker/android-builder/flutter-wrapper.sh /usr/local/lib/apk-factory/flutter-wrapper.sh
+RUN chmod 755 /usr/local/lib/apk-factory/*.sh \
+    && ln -sf /usr/local/lib/apk-factory/flutter-wrapper.sh /usr/local/bin/flutter \
+    && ln -sf /usr/local/lib/apk-factory/flutter-wrapper.sh /usr/local/bin/dart \
+    && ln -sf /usr/local/lib/apk-factory/flutter-health.sh /usr/local/bin/flutter-health
+
 # ── Non-root user ─────────────────────────────────────────────────────────────
 RUN groupadd -g 1000 builder \
     && useradd -u 1000 -g builder -m -s /bin/bash builder \
     # Give builder access to Android SDK (read-only mount will override at runtime)
     && chown -R builder:builder ${GRADLE_USER_HOME}
+
+# ── Flutter health gate: the image build fails if the SDK is incomplete ──────
+# Checked as root and as the unprivileged user that runs builds (fresh /tmp each time).
+# /tmp is emptied before each check: every check must start from the fresh state a new
+# container has, so one check cannot hide what another left behind.
+RUN rm -rf /tmp/flutter-stamps /tmp/flutter-cache.lock \
+    && FLUTTER_VERSION=${FLUTTER_VERSION} flutter-health \
+    && rm -rf /tmp/flutter-stamps /tmp/flutter-cache.lock \
+    && su builder -c "FLUTTER_HOME=${FLUTTER_HOME} FLUTTER_VERSION=${FLUTTER_VERSION} /usr/local/bin/flutter-health" \
+    # Leave /tmp as a fresh container expects it: files left by the builder check would be
+    # unwritable by root at run time (fs.protected_regular on sticky /tmp).
+    && rm -rf /tmp/flutter-stamps /tmp/flutter-cache.lock
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
 COPY docker/android-builder/entrypoint.sh /usr/local/bin/entrypoint.sh
