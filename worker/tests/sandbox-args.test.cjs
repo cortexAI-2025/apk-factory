@@ -19,7 +19,6 @@ test('sandbox drops privileges and mounts only the workspace', () => {
   assert.ok(a.includes('--read-only'));
   assert.deepEqual(a.filter((x, i) => a[i - 1] === '--volume'), [
     '/tmp/ws:/workspace:rw',
-    '/tmp/apk-factory-flutter.lock:/opt/flutter/bin/cache/lockfile:rw',
   ]);
   assert.ok(!a.some((x) => /docker\.sock/.test(x)));
 });

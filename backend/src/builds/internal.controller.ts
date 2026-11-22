@@ -65,8 +65,13 @@ export class InternalBuildsController {
     const now = new Date();
     const build = await this.prisma.build.findUnique({
       where: { id: buildId },
-      select: { startedAt: true },
+      select: { startedAt: true, status: true },
     });
+
+    // A cancel that lost the race with an already-locked worker must stick.
+    if (build?.status === 'CANCELLED' && body.status !== 'CANCELLED') {
+      return { id: buildId, status: 'CANCELLED', ignored: true };
+    }
 
     const duration =
       build?.startedAt

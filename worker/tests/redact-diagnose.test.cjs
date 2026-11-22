@@ -45,6 +45,7 @@ test('diagnoses missing wrapper jar, OOM, timeout, disk quota', () => {
   assert.equal(diagnoseFailure('Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain', 1).code, 'WRAPPER_BROKEN');
   assert.equal(diagnoseFailure('java.lang.OutOfMemoryError: Java heap space', 1).code, 'OUT_OF_MEMORY');
   assert.notEqual(diagnoseFailure('t=t.replace(/\\s*-XX:\\+HeapDumpOnOutOfMemoryError/g,"")', 1).code, 'OUT_OF_MEMORY');
+  assert.equal(diagnoseFailure('Flutter failed to open a file at "/opt/flutter/bin/cache/lockfile".\nThe file system is read-only. Please ensure that the SDK and/or project is installed in a location with write permissions.\n', 1).code, 'READ_ONLY_FILESYSTEM');
   assert.equal(diagnoseFailure('', 124).code, 'TIMEOUT');
   assert.equal(diagnoseFailure('', 1, 'disk').code, 'DISK_LIMIT');
   assert.notEqual(diagnoseFailure('', 125).code, 'DISK_LIMIT'); // exit 125 alone is docker's own error

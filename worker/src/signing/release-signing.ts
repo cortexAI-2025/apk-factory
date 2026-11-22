@@ -31,6 +31,8 @@ export interface SigningMaterial {
 export interface SignResult {
   action: 'signed' | 'kept-project-signature';
   source: 'env' | 'generated';
+  /** File to upload. Equals artifactPath when the workspace was writable. */
+  path: string;
 }
 
 export function defaultKeyDir(): string {
@@ -180,40 +182,66 @@ async function aabAlreadySigned(aab: string): Promise<boolean> {
   return code === 0 || /jar verified/i.test(text);
 }
 
-async function signApkLocal(apksigner: string, apk: string, material: SigningMaterial): Promise<void> {
-  const dir = path.dirname(apk);
-  const signed = path.join(dir, `.signed-${path.basename(apk)}`);
-  await execFileAsync(apksigner, [
-    'sign',
-    '--ks', material.file,
-    '--ks-key-alias', material.alias,
-    '--ks-pass', `file:${material.storePassFile}`,
-    '--key-pass', `file:${material.keyPassFile}`,
-    '--out', signed,
-    apk,
-  ]);
-  await fs.rename(signed, apk);
-  const idsig = `${signed}.idsig`;
-  await fs.rm(idsig, { force: true });
+function notWritable(err: any): boolean {
+  return err?.code === 'EACCES' || err?.code === 'EPERM' || err?.code === 'EROFS';
 }
 
-async function signAabLocal(aab: string, material: SigningMaterial): Promise<void> {
+/**
+ * Sign into a worker-owned temp directory, then replace the original when the
+ * workspace allows it. Gradle outputs created by uid 1000 inside the sandbox
+ * are often not writable by the host worker (EACCES on .signed-* / .signing-*).
+ * The keystore never enters the project tree.
+ */
+async function signInTemp(artifact: string, produce: (dest: string) => Promise<void>): Promise<string> {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'apk-sign-'));
+  const dest = path.join(dir, path.basename(artifact));
+  try {
+    await produce(dest);
+    try {
+      await fs.copyFile(dest, artifact);
+    } catch (err: any) {
+      if (!notWritable(err)) throw err;
+      return dest;
+    }
+    await fs.rm(dir, { recursive: true, force: true });
+    return artifact;
+  } catch (err) {
+    await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+    throw err;
+  }
+}
+
+async function signApkLocal(apksigner: string, apk: string, material: SigningMaterial): Promise<string> {
+  return signInTemp(apk, async (dest) => {
+    await execFileAsync(apksigner, [
+      'sign',
+      '--ks', material.file,
+      '--ks-key-alias', material.alias,
+      '--ks-pass', `file:${material.storePassFile}`,
+      '--key-pass', `file:${material.keyPassFile}`,
+      '--out', dest,
+      apk,
+    ]);
+    await fs.rm(`${dest}.idsig`, { force: true });
+  });
+}
+
+async function signAabLocal(aab: string, material: SigningMaterial): Promise<string> {
   if (!(await commandExists('jarsigner'))) {
     throw new Error('jarsigner is not installed in the worker. Install openjdk-17-jdk-headless.');
   }
-  const dir = path.dirname(aab);
-  const tmp = path.join(dir, `.signing-${path.basename(aab)}`);
-  await fs.copyFile(aab, tmp);
-  await execFileAsync('jarsigner', [
-    '-sigalg', 'SHA256withRSA',
-    '-digestalg', 'SHA-256',
-    '-keystore', material.file,
-    '-storepass:file', material.storePassFile,
-    '-keypass:file', material.keyPassFile,
-    tmp,
-    material.alias,
-  ]);
-  await fs.rename(tmp, aab);
+  return signInTemp(aab, async (dest) => {
+    await fs.copyFile(aab, dest);
+    await execFileAsync('jarsigner', [
+      '-sigalg', 'SHA256withRSA',
+      '-digestalg', 'SHA-256',
+      '-keystore', material.file,
+      '-storepass:file', material.storePassFile,
+      '-keypass:file', material.keyPassFile,
+      dest,
+      material.alias,
+    ]);
+  });
 }
 
 export async function signReleaseArtifact(artifactPath: string, material?: SigningMaterial): Promise<SignResult> {
@@ -225,20 +253,20 @@ export async function signReleaseArtifact(artifactPath: string, material?: Signi
       throw new Error('apksigner not found. Set ANDROID_HOME to an SDK with build-tools, or APKSIGNER to the binary.');
     }
     if (await apkAlreadySigned(artifactPath, apksigner)) {
-      return { action: 'kept-project-signature', source: resolved.source };
+      return { action: 'kept-project-signature', source: resolved.source, path: artifactPath };
     }
-    await signApkLocal(apksigner, artifactPath, resolved);
-    return { action: 'signed', source: resolved.source };
+    const pathOut = await signApkLocal(apksigner, artifactPath, resolved);
+    return { action: 'signed', source: resolved.source, path: pathOut };
   }
   if (ext === '.aab') {
     if (!(await commandExists('jarsigner'))) {
       throw new Error('jarsigner is not installed in the worker. Install openjdk-17-jdk-headless.');
     }
     if (await aabAlreadySigned(artifactPath)) {
-      return { action: 'kept-project-signature', source: resolved.source };
+      return { action: 'kept-project-signature', source: resolved.source, path: artifactPath };
     }
-    await signAabLocal(artifactPath, resolved);
-    return { action: 'signed', source: resolved.source };
+    const pathOut = await signAabLocal(artifactPath, resolved);
+    return { action: 'signed', source: resolved.source, path: pathOut };
   }
   throw new Error(`Cannot sign ${ext || 'file'} — expected .apk or .aab`);
 }

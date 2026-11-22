@@ -110,3 +110,57 @@ with zipfile.ZipFile(sys.argv[1], "w") as z:
   const again = await signReleaseArtifact(aab);
   assert.equal(again.action, 'kept-project-signature');
 });
+
+test('an unwritable workspace is signed in a temp file, not beside the artifact', async (t) => {
+  const project = await fs.mkdtemp(path.join(os.tmpdir(), 'apk-aab-ro-'));
+  const keyDir = await fs.mkdtemp(path.join(os.tmpdir(), 'apk-keys-'));
+  const fsp = require('fs/promises');
+  const origCopy = fsp.copyFile;
+  const hold = { path: '' };
+  t.after(async () => {
+    fsp.copyFile = origCopy;
+    if (hold.path && hold.path !== aab) await fs.rm(path.dirname(hold.path), { recursive: true, force: true }).catch(() => {});
+    await fs.rm(project, { recursive: true, force: true });
+    await fs.rm(keyDir, { recursive: true, force: true });
+  });
+  useKeyDir(t);
+  process.env.APK_FACTORY_KEY_DIR = keyDir;
+  delete process.env.KEYSTORE_PATH;
+  delete process.env.KEYSTORE_PASSWORD;
+
+  const payload = path.join(project, 'AndroidManifest.xml');
+  const aab = path.join(project, 'app-release.aab');
+  await fs.writeFile(payload, '<manifest/>');
+  await execFileAsync('python3', ['-c', `
+import zipfile, sys
+with zipfile.ZipFile(sys.argv[1], "w") as z:
+    z.write(sys.argv[2], "base/manifest/AndroidManifest.xml")
+`, aab, payload]);
+  // Root ignores mode 0555. The CI failure is a non-owner EACCES on the
+  // Gradle output, so the replace step is forced to fail the same way.
+  fsp.copyFile = async (src, dest, ...rest) => {
+    if (dest === aab) {
+      const err = new Error(`EACCES: permission denied, copyfile '${src}' -> '${dest}'`);
+      err.code = 'EACCES';
+      throw err;
+    }
+    return origCopy(src, dest, ...rest);
+  };
+
+  const signed = await signReleaseArtifact(aab);
+  hold.path = signed.path;
+  assert.equal(signed.action, 'signed');
+  assert.notEqual(path.resolve(signed.path), path.resolve(aab));
+  assert.equal(path.basename(signed.path), 'app-release.aab');
+  let text = '';
+  try {
+    const r = await execFileAsync('jarsigner', ['-verify', '-strict', signed.path], { encoding: 'utf8' });
+    text = `${r.stdout}\n${r.stderr}`;
+  } catch (err) {
+    text = `${err.stdout || ''}\n${err.stderr || ''}`;
+    if (err.code === 16 || !/jar verified/i.test(text)) throw err;
+  }
+  assert.match(text, /jar verified/i);
+  const names = await fs.readdir(project);
+  assert.ok(!names.some((name) => name.startsWith('.signing-') || name.includes('upload.jks')));
+});

@@ -51,6 +51,12 @@ if [ -x /opt/flutter/bin/flutter ]; then
     export PATH="${FLUTTER_HOME}/bin:${PATH}"
     export PUB_CACHE="${PUB_CACHE:-/tmp/pub-cache}"
     mkdir -p "${PUB_CACHE}" "${HOME}/.config" "${HOME}/.flutter"
+    # The image symlink bin/cache/lockfile -> /tmp/flutter-cache.lock.
+    # A file bind-mount is EROFS under --read-only, so the target lives on tmpfs.
+    if [ -L /opt/flutter/bin/cache/lockfile ]; then
+        touch /tmp/flutter-cache.lock
+        chmod 666 /tmp/flutter-cache.lock 2>/dev/null || true
+    fi
     echo "[entrypoint] Flutter   : ${FLUTTER_HOME}"
 fi
 

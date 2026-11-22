@@ -139,7 +139,9 @@ RUN printf '%s\n' \
 COPY docker/android-builder/patch-flutter-readonly.js /tmp/patch-flutter-readonly.js
 RUN node /tmp/patch-flutter-readonly.js \
     && rm /tmp/patch-flutter-readonly.js \
-    && chmod -R a+rX ${FLUTTER_HOME}
+    && chmod -R a+rX ${FLUTTER_HOME} \
+    && rm -f ${FLUTTER_HOME}/bin/cache/lockfile \
+    && ln -s /tmp/flutter-cache.lock ${FLUTTER_HOME}/bin/cache/lockfile
 
 # ── Non-root user ─────────────────────────────────────────────────────────────
 RUN groupadd -g 1000 builder \

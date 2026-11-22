@@ -56,7 +56,7 @@ export async function stageDetect(ctx: PipelineContext): Promise<StageResult> {
   if (result.versions.node)      await ctx.log('info', `Node (declared)  : ${result.versions.node}`);
   if (result.versions.capacitorCore) await ctx.log('info', `Capacitor        : ${result.versions.capacitorCore}`);
   if (result.versions.cordovaAndroid) await ctx.log('info', `Cordova Android  : ${result.versions.cordovaAndroid}`);
-  if (result.versions.nativeLanguage) await ctx.log('info', `Native language  : ${result.versions.nativeLanguage}`);
+  if (result.versions.nativeLanguage) await ctx.log('info', `Native language  : ${result.versions.nativeLanguage.toUpperCase()}`);
   if (result.versions.flutter) await ctx.log('info', `Flutter SDK      : ${result.versions.flutter}`);
 
   for (const signal of ctx.frameworkSignals) await ctx.log('debug', `  signal: ${signal}`);

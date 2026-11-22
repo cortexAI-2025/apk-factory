@@ -29,14 +29,25 @@ async function api(route, { method = 'GET', token, body, form, raw } = {}) {
   const headers = {};
   if (token) headers.Authorization = `Bearer ${token}`;
   if (body) headers['Content-Type'] = 'application/json';
-  const res = await fetch(`${API}/api/v1${route}`, {
-    method, headers, body: form || (body ? JSON.stringify(body) : undefined),
-    redirect: 'manual', signal: AbortSignal.timeout(120000),
-  });
-  if (raw) return res;
-  const text = await res.text();
-  let json; try { json = JSON.parse(text); } catch { json = text; }
-  return { status: res.status, body: json };
+  let last;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    try {
+      const res = await fetch(`${API}/api/v1${route}`, {
+        method, headers, body: form || (body ? JSON.stringify(body) : undefined),
+        redirect: 'manual', signal: AbortSignal.timeout(120000),
+      });
+      if (raw) return res;
+      const text = await res.text();
+      let json; try { json = JSON.parse(text); } catch { json = text; }
+      return { status: res.status, body: json };
+    } catch (err) {
+      last = err;
+      const msg = String(err && err.cause && err.cause.code || err.message || err);
+      if (attempt === 4 || !/fetch failed|ECONNREFUSED|ECONNRESET|EAI_AGAIN|UND_ERR/i.test(msg)) throw err;
+      await new Promise((r) => setTimeout(r, 1000 * attempt));
+    }
+  }
+  throw last;
 }
 
 async function register(prefix) {

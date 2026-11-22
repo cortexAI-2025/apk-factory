@@ -42,11 +42,20 @@ function zipDir(dir, dest) {
 
 function ensureLockfile(dir) {
   if (fs.existsSync(path.join(dir, 'package-lock.json'))) return;
-  execFileSync('docker', [
-    'run', '--rm', '--user', '0', '--network', 'bridge', '--entrypoint', 'npm',
-    '-e', 'HOME=/tmp', '-v', `${path.resolve(dir)}:/src`, '-w', '/src', IMAGE,
-    'install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund',
-  ], { stdio: 'inherit', timeout: 600000 });
+  // Host npm avoids a second docker run that has killed the API on the
+  // runner (OOM / a brief iptables reset) right before the upload.
+  try {
+    execFileSync('npm', ['install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund'], {
+      cwd: dir, stdio: 'inherit', timeout: 600000,
+    });
+  } catch (err) {
+    execFileSync('docker', [
+      'run', '--rm', '--user', '0', '--network', 'bridge', '--memory', '2g', '--memory-swap', '2g',
+      '--entrypoint', 'npm',
+      '-e', 'HOME=/tmp', '-v', `${path.resolve(dir)}:/src`, '-w', '/src', IMAGE,
+      'install', '--package-lock-only', '--ignore-scripts', '--no-audit', '--no-fund',
+    ], { stdio: 'inherit', timeout: 600000 });
+  }
   if (!fs.existsSync(path.join(dir, 'package-lock.json'))) {
     throw new Error(`npm did not write a lockfile in ${dir}`);
   }
@@ -310,7 +319,7 @@ async function runVariant(spec, token, projectId, variant) {
     L.check(`${spec.id} ${variant} detected ${spec.expect.framework}`, row.detected === spec.expect.framework, row.detected || 'no framework line');
   }
   if (spec.expect.language) {
-    L.check(`${spec.id} ${variant} language ${spec.expect.language}`, row.language === spec.expect.language, row.language || 'no language line');
+    L.check(`${spec.id} ${variant} language ${spec.expect.language}`, row.language.toUpperCase() === String(spec.expect.language).toUpperCase(), row.language || 'no language line');
   }
   if (done.status !== 'SUCCESS') {
     row.error = done.errorMessage || '';
