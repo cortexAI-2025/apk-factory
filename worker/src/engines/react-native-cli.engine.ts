@@ -15,6 +15,7 @@
  *   3. Run the resolved Gradle task.
  */
 import { BuildEngine, ComposedCommand, installCommand, resolveGradleTask } from './types';
+import { nativeBuildDiagnosticsTrap } from './native-diagnostics';
 import { stripTemplateDebugSigningShell } from './template-signing';
 import { PipelineContext } from '../pipeline/types';
 
@@ -53,6 +54,7 @@ export const reactNativeCliEngine: BuildEngine = {
     ].join('');
     const script = [
       'set -euo pipefail',
+      nativeBuildDiagnosticsTrap(),
       `echo "[engine:react-native-cli] package manager: ${pm}"`,
       installCommand(pm),
       `node -e ${JSON.stringify(normalize)}`,

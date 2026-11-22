@@ -20,6 +20,7 @@
  * for the install step, same lockfile-pinned reproducibility as Lot 3).
  */
 import { BuildEngine, ComposedCommand, installCommand, resolveGradleTask } from './types';
+import { nativeBuildDiagnosticsTrap } from './native-diagnostics';
 import { stripTemplateDebugSigningShell } from './template-signing';
 import { PipelineContext } from '../pipeline/types';
 
@@ -104,6 +105,7 @@ export const expoEngine: BuildEngine = {
 
     const script = [
       'set -euo pipefail',
+      nativeBuildDiagnosticsTrap(),
       `echo "[engine:expo] package manager: ${pm}"`,
       installCommand(pm),
       prebuildStep,
