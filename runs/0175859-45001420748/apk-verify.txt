@@ -1,0 +1,10 @@
+build-tools: /usr/local/lib/android/sdk/build-tools/37.0.0
+Exception in thread "main" java.io.FileNotFoundException: /home/runner/work/apk-factory/apk-factory/e2e-out/app-debug.apk (No such file or directory)
+	at java.base/java.io.RandomAccessFile.open0(Native Method)
+	at java.base/java.io.RandomAccessFile.open(RandomAccessFile.java:344)
+	at java.base/java.io.RandomAccessFile.<init>(RandomAccessFile.java:259)
+	at java.base/java.io.RandomAccessFile.<init>(RandomAccessFile.java:213)
+	at com.android.apksig.ApkVerifier.verify(ApkVerifier.java:160)
+	at com.android.apksigner.ApkSignerTool.verify(ApkSignerTool.java:678)
+	at com.android.apksigner.ApkSignerTool.main(ApkSignerTool.java:97)
+::error::apksigner verification failed

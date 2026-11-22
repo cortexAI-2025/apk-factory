@@ -1,0 +1,71 @@
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[NestFactory] [39m[32mStarting Nest application...[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAppModule dependencies initialized[39m[38;5;3m +16ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPrismaModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mPassportModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mThrottlerModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigHostModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mTerminusModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mConfigModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mHealthModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mStorageModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mQueueModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAiModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mMetricsModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mJwtModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mDownloadModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mGatewayModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mLifecycleModule dependencies initialized[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mBuildsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mProjectsModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[InstanceLoader] [39m[32mAuthModule dependencies initialized[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mBuildsGateway subscribed to the "subscribe:build" message[39m[38;5;3m +14ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[WebSocketsController] [39m[32mBuildsGateway subscribed to the "unsubscribe:build" message[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mAuthController {/api/v1/auth}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/register, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/login, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/profile, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/auth/api-keys, POST} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mProjectsController {/api/v1/projects}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/upload, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/import, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:id, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:id, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMeController {/api/v1/me}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/me/data, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/me, DELETE} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mBuildsController {/api/v1/projects/:projectId/builds}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:projectId/builds, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:projectId/builds, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:projectId/builds/:buildId, GET} route[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:projectId/builds/:buildId/logs, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:projectId/builds/:buildId/artifacts/:artifactId/download, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:projectId/builds/:buildId/public-link, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/projects/:projectId/builds/:buildId/cancel, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mInternalBuildsController {/api/v1/internal/builds}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/internal/builds/:buildId/status, PATCH} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/internal/builds/:buildId/logs, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/internal/builds/:buildId/fixes, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/internal/builds/:buildId/artifacts, POST} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mHealthController {/api/v1/health}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/health, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mMetricsController {/api/v1/metrics}:[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/metrics/stats, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/metrics/feed, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/metrics/chart, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RoutesResolver] [39m[32mDownloadController {/api/v1/download}:[39m[38;5;3m +1ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[RouterExplorer] [39m[32mMapped {/api/v1/download/:token, GET} route[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:01 AM [32m    LOG[39m [38;5;3m[QueueService] [39m[32mBuild queue initialized[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:02 AM [32m    LOG[39m [38;5;3m[PrismaService] [39m[32mDatabase connected[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:02 AM [32m    LOG[39m [38;5;3m[NestApplication] [39m[32mNest application successfully started[39m[38;5;3m +0ms[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:02 AM [32m    LOG[39m [38;5;3m[Bootstrap] [39m[32mAPK Factory API running on port 4000[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:09 AM [32m    LOG[39m [38;5;3m[QueueService] [39m[32mBuild job enqueued: 1 for build 376b8644-518c-4b2b-86bd-92cebe3c51bd[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:09 AM [32m    LOG[39m [38;5;3m[QueueService] [39m[32mBuild job enqueued: 2 for build 6e587ae9-a3d7-4837-ab0a-11810afcbd62[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:55 AM [32m    LOG[39m [38;5;3m[ProjectsService] [39m[32mImporting cortexAI-2025/this-repository-does-not-exist-xyz[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:55 AM [32m    LOG[39m [38;5;3m[ProjectsService] [39m[32mImporting octocat/Hello-World[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:55 AM [32m    LOG[39m [38;5;3m[ProjectsService] [39m[32mImporting cortexAI-2025/apk-factory[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:23:57 AM [32m    LOG[39m [38;5;3m[QueueService] [39m[32mBuild job enqueued: 1 for build fc0232e8-e564-4750-b566-cf49130dfb58[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:24:25 AM [32m    LOG[39m [38;5;3m[QueueService] [39m[32mBuild job enqueued: 2 for build 2b6b03b2-1cd2-4d21-8667-4b070b76366b[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:24:53 AM [32m    LOG[39m [38;5;3m[QueueService] [39m[32mBuild job enqueued: 3 for build 45d8ea81-eaae-49d2-9c96-f58b453c9ae4[39m
+[32m[Nest] 13054  - [39m11/22/2026, 8:24:53 AM [32m    LOG[39m [38;5;3m[QueueService] [39m[32mBuild job enqueued: 4 for build 1ac37625-d9ec-4640-b5be-3da6e2d17eb0[39m
