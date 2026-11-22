@@ -27,7 +27,9 @@ export const cordovaEngine: BuildEngine = {
   composeCommand(ctx: PipelineContext, extraGradleArgs?: string): ComposedCommand {
     const pm = ctx.packageManager || 'npm';
     const extra = [
-      ctx.buildType === 'AAB' ? '--packageType=bundle' : '',
+      // cordova-android >= 9 defaults every --release build to an AAB (lib/build.js: packageType =
+      // BUNDLE). A RELEASE (APK) request must say so, or Gradle builds a bundle and no APK exists.
+      ctx.buildType === 'AAB' ? '--packageType=bundle' : ctx.buildType === 'RELEASE' ? '--packageType=apk' : '',
       extraGradleArgs || '',
     ].filter(Boolean).join(' ');
     const mode = ctx.buildType === 'DEBUG' ? '--debug' : '--release';
