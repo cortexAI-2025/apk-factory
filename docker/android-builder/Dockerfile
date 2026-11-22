@@ -134,17 +134,23 @@ RUN printf '%s\n' \
     && chmod +x /usr/local/bin/tar \
     && git clone --depth 1 --branch ${FLUTTER_VERSION} https://github.com/flutter/flutter.git ${FLUTTER_HOME} \
     && git config --system --add safe.directory ${FLUTTER_HOME} \
+    # The SDK's own packages (flutter_tools' dependencies) must live where the unprivileged
+    # runtime user can read them: Flutter re-reads flutter_tools/.dart_tool/package_config.json
+    # on every create/pub get/build and runs `pub get` on its own tool (a WRITE under /opt) when
+    # any listed package directory is missing. Root's ~/.pub-cache is unreadable by builder.
+    # Scoped to these steps: at run time PUB_CACHE stays /tmp/pub-cache for the app's packages.
+    && mkdir -p /opt/pub-cache && export PUB_CACHE=/opt/pub-cache \
     && CI=true ${FLUTTER_HOME}/bin/flutter config --no-analytics --no-cli-animations \
     && CI=true ${FLUTTER_HOME}/bin/flutter precache --android
 COPY docker/android-builder/patch-flutter-readonly.js /tmp/patch-flutter-readonly.js
 RUN node /tmp/patch-flutter-readonly.js \
     && rm /tmp/patch-flutter-readonly.js \
-    && chmod -R a+rX ${FLUTTER_HOME} \
+    && chmod -R a+rX ${FLUTTER_HOME} /opt/pub-cache \
     && rm -f ${FLUTTER_HOME}/bin/cache/lockfile \
     && ln -s /tmp/flutter-cache.lock ${FLUTTER_HOME}/bin/cache/lockfile \
     # Make sure the tool snapshot and its stamp exist as REAL files before they are moved
     # to the seed: a missing flutter_tools.stamp makes Flutter rebuild (and write) at start.
-    && ${FLUTTER_HOME}/bin/flutter --version \
+    && PUB_CACHE=/opt/pub-cache ${FLUTTER_HOME}/bin/flutter --version \
     && test -s ${FLUTTER_HOME}/bin/cache/flutter_tools.stamp \
     && test -f ${FLUTTER_HOME}/bin/cache/flutter_tools.snapshot \
     && mkdir -p /opt/flutter-stamps \

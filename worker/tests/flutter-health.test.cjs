@@ -39,11 +39,20 @@ function sdk(t, { dart = true, version = '3.50.1' } = {}) {
   const tools = path.join(home, 'packages/flutter_tools');
   fs.writeFileSync(path.join(tools, 'pubspec.yaml'), 'name: flutter_tools\n');
   fs.writeFileSync(path.join(home, 'bin/cache/flutter_tools.snapshot'), 'snap');
+  // flutter_tools' resolved dependencies, as `pub get` writes them (one hosted package here)
+  const pkgRoot = path.join(root, 'pub-cache/hosted/pub.dev/args-2.0.0');
+  fs.mkdirSync(pkgRoot, { recursive: true });
+  fs.writeFileSync(path.join(pkgRoot, 'pubspec.yaml'), 'name: args\n');
+  fs.mkdirSync(path.join(tools, '.dart_tool'), { recursive: true });
+  fs.writeFileSync(path.join(tools, '.dart_tool/package_config.json'), JSON.stringify({ configVersion: 2, packages: [
+    { name: 'args', rootUri: `file://${pkgRoot}`, packageUri: 'lib/', languageVersion: '3.0' },
+    { name: 'flutter_tools', rootUri: '../', packageUri: 'lib/', languageVersion: '3.0' },
+  ] }));
   fs.writeFileSync(path.join(tools, 'pubspec.lock'), '# lock\n');
   const later = new Date(Date.now() + 5000); fs.utimesSync(path.join(tools, 'pubspec.lock'), later, later);
   fs.writeFileSync(path.join(seed, 'flutter_tools.stamp'), `${git('rev-parse', 'HEAD').trim()}:`);
   fs.symlinkSync(path.join(tmp, 'flutter_tools.stamp'), path.join(home, 'bin/cache/flutter_tools.stamp'));
-  return { home, seed, tmp, tools, env: { PATH: process.env.PATH, FLUTTER_HOME: home, FLUTTER_STAMP_SEED: seed, FLUTTER_STAMP_DIR: tmp, FLUTTER_LOCK_FILE: path.join(tmp, 'flutter-cache.lock'), FLUTTER_VERSION: '3.50.1' } };
+  return { home, seed, tmp, tools, pkgRoot, env: { PATH: process.env.PATH, FLUTTER_HOME: home, FLUTTER_STAMP_SEED: seed, FLUTTER_STAMP_DIR: tmp, FLUTTER_LOCK_FILE: path.join(tmp, 'flutter-cache.lock'), FLUTTER_VERSION: '3.50.1' } };
 }
 const sh = (script, env) => spawnSync('sh', [path.join(DIR, script)], { env, encoding: 'utf8' });
 
@@ -152,4 +161,24 @@ test('bootstrap and health survive a lock file that cannot be created', (t) => {
   assert.equal(b.status, 0, b.stderr);
   const h = sh('flutter-health.sh', env);
   assert.equal(h.status, 0, h.stderr);
+});
+
+// Regression (CI run 45015609173, HTTP Docker flutter): `flutter build` died writing
+// packages/flutter_tools/.dart_tool/package_config.json. Flutter (PubDependencies.isUpToDate) re-runs
+// `pub get` on its own tool when a package listed there is missing/unreadable, e.g. after an image
+// built as root with a root-only pub cache and run as builder with another PUB_CACHE.
+test('health check fails when a flutter_tools dependency is not readable by the user', (t) => {
+  const s = sdk(t);
+  fs.rmSync(path.join(s.pkgRoot, 'pubspec.yaml'));
+  const r = sh('flutter-health.sh', s.env);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /flutter_tools packages not readable[^]*args ->/);
+});
+
+test('health check fails when flutter_tools package_config.json is missing', (t) => {
+  const s = sdk(t);
+  fs.rmSync(path.join(s.tools, '.dart_tool'), { recursive: true });
+  const r = sh('flutter-health.sh', s.env);
+  assert.notEqual(r.status, 0);
+  assert.match(r.stderr, /package_config\.json is missing or unreadable/);
 });

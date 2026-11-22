@@ -39,6 +39,25 @@ if [ -f "$tools/pubspec.lock" ] && [ "$tools/pubspec.yaml" -nt "$tools/pubspec.l
 fi
 [ -f "$tools/pubspec.lock" ] || fail "packages/flutter_tools/pubspec.lock is missing: Flutter would run pub upgrade at start"
 
+# Cache.updateAll -> PubDependencies.isUpToDate: every package listed in flutter_tools'
+# package_config.json must exist and be readable by THIS user, or Flutter runs `pub get` on its
+# own tool at the first create/pub get/build and fails on the read-only root.
+tool_cfg="$tools/.dart_tool/package_config.json"
+[ -r "$tool_cfg" ] || fail "$tool_cfg is missing or unreadable: Flutter would run pub get on its own tool"
+if command -v node >/dev/null 2>&1; then
+  missing="$(node -e '
+    const fs=require("fs"),path=require("path"),url=require("url");
+    const cfg=process.argv[1], base=path.dirname(cfg);
+    const miss=[];
+    for (const p of JSON.parse(fs.readFileSync(cfg,"utf8")).packages) {
+      const root=p.rootUri.startsWith("file:")?url.fileURLToPath(p.rootUri):path.resolve(base,decodeURIComponent(p.rootUri));
+      try { fs.accessSync(path.join(root,"pubspec.yaml"),fs.constants.R_OK); } catch { miss.push(p.name+" -> "+root); }
+    }
+    console.log(miss.slice(0,5).join("\n"));' "$tool_cfg")" || fail "cannot read $tool_cfg"
+  [ -z "$missing" ] || fail "flutter_tools packages not readable by uid $(id -u) (Flutter would run pub get on its own tool and fail on a read-only root):
+$missing"
+fi
+
 dart_version="$("$dart_bin" --version 2>&1)" || fail "the bundled Dart SDK does not run: $dart_version"
 
 flutter_out="$("$FLUTTER_HOME/bin/flutter" --version 2>&1)" || fail "flutter --version failed:
