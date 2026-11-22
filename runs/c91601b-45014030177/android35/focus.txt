@@ -1,0 +1,2 @@
+  mCurrentFocus=Window{5aab92b u0 com.apkfactory.reference/com.apkfactory.reference.MainActivity}
+  mFocusedApp=ActivityRecord{e0f153c u0 com.apkfactory.reference/.MainActivity t8}
