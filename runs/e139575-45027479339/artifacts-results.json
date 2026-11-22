@@ -1,0 +1,137 @@
+[
+  {
+    "label": "upload refused with a wrong worker secret (401)",
+    "ok": true,
+    "detail": "HTTP 401"
+  },
+  {
+    "label": "checksum mismatch is rejected (400) and stores nothing",
+    "ok": true,
+    "detail": "HTTP 400 files=0"
+  },
+  {
+    "label": "file name rejected: path traversal name",
+    "ok": true,
+    "detail": "HTTP 400"
+  },
+  {
+    "label": "file name rejected: script name",
+    "ok": true,
+    "detail": "HTTP 400"
+  },
+  {
+    "label": "file name rejected: double extension",
+    "ok": true,
+    "detail": "HTTP 400"
+  },
+  {
+    "label": "file name rejected: empty name",
+    "ok": true,
+    "detail": "HTTP 400"
+  },
+  {
+    "label": "empty artifact is rejected (400)",
+    "ok": true,
+    "detail": "HTTP 400"
+  },
+  {
+    "label": "oversized artifact is refused and leaves no file",
+    "ok": true,
+    "detail": "HTTP network:ECONNRESET files=0"
+  },
+  {
+    "label": "nothing was stored by the rejected uploads",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "valid upload accepted without a client checksum (201)",
+    "ok": true,
+    "detail": "HTTP 201 {\"id\":\"3457d10a-fe6d-4802-b2b9-00d7c5f155e3\",\"apkUrl\":\"http://localhost:4000/api/v1/projects/e7d64c21-7ecb-4458-9112-3a1"
+  },
+  {
+    "label": "second variant accepted with a matching checksum",
+    "ok": true,
+    "detail": "HTTP 201"
+  },
+  {
+    "label": "build lists both variants, the recommended one first",
+    "ok": true,
+    "detail": "[[\"app-universal-debug.apk\",true],[\"app-arm64-v8a-debug.apk\",false]]"
+  },
+  {
+    "label": "apkUrl points to the authenticated download route, not a static file",
+    "ok": true,
+    "detail": "http://localhost:4000/api/v1/projects/e7d64c21-7ecb-4458-9112-3a1f85b6b01a/builds/c83eac3c-42c4-419e-819b-10dc14109968/artifacts/3457d10a-fe6d-4802-b2b9-00d7c5f155e3/download"
+  },
+  {
+    "label": "API exposes SHA-256 and size but never the storage path",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "files are stored under opaque ids, never under user-supplied names",
+    "ok": true,
+    "detail": "3457d10a-fe6d-4802-b2b9-00d7c5f155e3.apk,9b8e9931-4c51-41fc-aa8b-056d02b76e92.apk"
+  },
+  {
+    "label": "AAB upload is accepted and stored as .aab",
+    "ok": true,
+    "detail": "HTTP 201 3457d10a-fe6d-4802-b2b9-00d7c5f155e3.apk,5c722e7f-fbe8-4337-904d-7929f5e27e08.aab,9b8e9931-4c51-41fc-aa8b-056d02b76e92.apk"
+  },
+  {
+    "label": "owner downloads app-universal-debug.apk with the right bytes",
+    "ok": true,
+    "detail": "HTTP 200"
+  },
+  {
+    "label": "other account gets 404 for app-universal-debug.apk",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "owner downloads app-arm64-v8a-debug.apk with the right bytes",
+    "ok": true,
+    "detail": "HTTP 200"
+  },
+  {
+    "label": "other account gets 404 for app-arm64-v8a-debug.apk",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "unknown artifact id gives 404",
+    "ok": true,
+    "detail": "HTTP 404"
+  },
+  {
+    "label": "malformed artifact id is rejected (400/404)",
+    "ok": true,
+    "detail": "HTTP 400"
+  },
+  {
+    "label": "a finished build no longer accepts artifacts (409)",
+    "ok": true,
+    "detail": "HTTP 409"
+  },
+  {
+    "label": "artifact stored for the project to delete",
+    "ok": true,
+    "detail": ""
+  },
+  {
+    "label": "deleting a project removes its artifact files",
+    "ok": true,
+    "detail": "HTTP 200"
+  },
+  {
+    "label": "deleting the account removes every artifact file",
+    "ok": true,
+    "detail": "HTTP 200"
+  },
+  {
+    "label": "the other account is unaffected by that deletion",
+    "ok": true,
+    "detail": ""
+  }
+]
