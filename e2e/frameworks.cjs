@@ -371,6 +371,7 @@ async function runVariant(spec, token, projectId, variant) {
     L.check(`${spec.id} DEBUG is the Android debug key, not the factory key`, debugKey, meta.signer || 'no signer');
   } else {
     L.check(`${spec.id} ${variant} signature verified`, meta.ok && !!meta.signer, meta.signer || meta.detail.slice(0, 180));
+    L.check(`${spec.id} ${variant} is signed with the factory key, not the Android debug key`, !debugKey && row.productionSignature, meta.signer || 'no signer');
   }
   REPORT.push(row);
   return { ...row, dlPath, token };

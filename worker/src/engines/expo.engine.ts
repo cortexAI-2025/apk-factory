@@ -20,6 +20,7 @@
  * for the install step, same lockfile-pinned reproducibility as Lot 3).
  */
 import { BuildEngine, ComposedCommand, installCommand, resolveGradleTask } from './types';
+import { stripTemplateDebugSigningShell } from './template-signing';
 import { PipelineContext } from '../pipeline/types';
 
 /**
@@ -107,6 +108,7 @@ export const expoEngine: BuildEngine = {
       installCommand(pm),
       prebuildStep,
       normalizeStep,
+      stripTemplateDebugSigningShell('expo'),
       `cd ${gradleRoot}`,
       'chmod +x ./gradlew 2>/dev/null || true',
       gradleInvocation,
