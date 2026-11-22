@@ -145,6 +145,8 @@ export const flutterEngine: BuildEngine = {
     const script = [
       'set -euo pipefail',
       'command -v flutter >/dev/null 2>&1 || { echo "[engine:flutter] flutter is not installed in this build image"; exit 127; }',
+      // Explicit, early failure when the SDK is incomplete (image ships flutter-health; local runtimes may not).
+      'if command -v flutter-health >/dev/null 2>&1; then flutter-health || { echo "[engine:flutter] Flutter SDK health check failed"; exit 1; }; fi',
       'flutter --version',
       'if [ ! -d android ]; then',
       '  echo "[engine:flutter] android/ missing — adding the Android embedding"',
