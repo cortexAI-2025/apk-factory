@@ -1,0 +1,4 @@
+✓ registration lands on the dashboard
+✓ repository URL is the default way to import
+✓ ZIP imported from the UI (project card shown)
+✓ build type is limited to debug APK
