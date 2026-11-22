@@ -156,11 +156,26 @@ RUN node /tmp/patch-flutter-readonly.js \
          if [ ! -e "${name}.stamp" ] && [ ! -L "${name}.stamp" ]; then ln -s "/tmp/flutter-stamps/${name}.stamp" "${name}.stamp"; fi; \
        done
 
+# Stamps and the lockfile are symlinks into /tmp (empty in every fresh container). The
+# wrappers below seed them on every invocation, so `flutter`/`dart` work from any entry
+# point, not only through entrypoint.sh. Real SDK binaries are called by absolute path.
+COPY docker/android-builder/flutter-bootstrap.sh docker/android-builder/flutter-health.sh /usr/local/lib/apk-factory/
+COPY docker/android-builder/flutter-wrapper.sh /usr/local/lib/apk-factory/flutter-wrapper.sh
+RUN chmod 755 /usr/local/lib/apk-factory/*.sh \
+    && ln -sf /usr/local/lib/apk-factory/flutter-wrapper.sh /usr/local/bin/flutter \
+    && ln -sf /usr/local/lib/apk-factory/flutter-wrapper.sh /usr/local/bin/dart \
+    && ln -sf /usr/local/lib/apk-factory/flutter-health.sh /usr/local/bin/flutter-health
+
 # ── Non-root user ─────────────────────────────────────────────────────────────
 RUN groupadd -g 1000 builder \
     && useradd -u 1000 -g builder -m -s /bin/bash builder \
     # Give builder access to Android SDK (read-only mount will override at runtime)
     && chown -R builder:builder ${GRADLE_USER_HOME}
+
+# ── Flutter health gate: the image build fails if the SDK is incomplete ──────
+# Checked as root and as the unprivileged user that runs builds (fresh /tmp each time).
+RUN FLUTTER_VERSION=${FLUTTER_VERSION} flutter-health \
+    && su builder -c "FLUTTER_HOME=${FLUTTER_HOME} FLUTTER_VERSION=${FLUTTER_VERSION} /usr/local/bin/flutter-health"
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
 COPY docker/android-builder/entrypoint.sh /usr/local/bin/entrypoint.sh

@@ -78,8 +78,18 @@ const wrapperFiles = [
     // GitHub ZIP link of the same branch (needs real internet access: CI only)
     const m = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/tree\/(.+?)\/examples\/reference-android$/.exec(process.env.E2E_REPO_URL);
     if (m && process.env.E2E_ZIP_LINK === '1') {
+      // The repository holds several Android sample projects (reference-android, reference-kotlin).
+      // A ZIP of the whole repository is therefore ambiguous: the API must refuse with a message
+      // that names the candidate folders, and must not create a project. Importing a single
+      // project from a repository is what the /tree/<branch>/<folder> URL above covers.
+      const before = (await api('/projects', { token: A.token })).body.projects.length;
       const z = await importUrl(`https://github.com/${m[1]}/archive/refs/heads/${m[2]}.zip`);
-      check('GitHub ZIP link of the whole repository imports the Android sub-project', z.status < 300 && z.body.projectType === 'ANDROID_NATIVE', `HTTP ${z.status} ${msgOf(z).slice(0, 160)}`);
+      const msg = msgOf(z);
+      check('GitHub ZIP link of a multi-project repository is refused with the candidate folders (400)',
+        z.status === 400 && /Several Android Gradle projects/.test(msg) && /examples\/reference-android\//.test(msg) && /examples\/reference-kotlin\//.test(msg),
+        `HTTP ${z.status} ${msg.slice(0, 200)}`);
+      const after = (await api('/projects', { token: A.token })).body.projects.length;
+      check('the refused ZIP link left no project behind', after === before, `${before} → ${after}`);
     }
   }
 

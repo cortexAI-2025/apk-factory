@@ -312,7 +312,7 @@ jobs:
         run: |
           mkdir -p "$E2E_OUT"
           docker image inspect apk-factory/android-builder:latest --format 'id={{.Id}} size={{.Size}} created={{.Created}}' | tee "$E2E_OUT/image.txt"
-          docker run --rm --user 0 --entrypoint bash apk-factory/android-builder:latest -c 'set -e; echo "== java =="; java -version; echo "== platforms =="; ls /opt/android-sdk/platforms; echo "== build-tools =="; ls /opt/android-sdk/build-tools; echo "== ndk =="; ls /opt/android-sdk/ndk; echo "== gradle =="; gradle -version; echo "== node =="; node -v; npm -v; echo "== flutter =="; flutter --version' | tee "$E2E_OUT/toolchain.txt"
+          docker run --rm --user 0 --entrypoint bash -v "$PWD/scripts/toolchain-check.sh:/tmp/toolchain-check.sh:ro" apk-factory/android-builder:latest /tmp/toolchain-check.sh "$FRAMEWORKS" | tee "$E2E_OUT/toolchain.txt"
 
       - name: Host apksigner from the image
         run: |

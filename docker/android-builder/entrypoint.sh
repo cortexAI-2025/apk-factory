@@ -51,19 +51,8 @@ if [ -x /opt/flutter/bin/flutter ]; then
     export PATH="${FLUTTER_HOME}/bin:${PATH}"
     export PUB_CACHE="${PUB_CACHE:-/tmp/pub-cache}"
     mkdir -p "${PUB_CACHE}" "${HOME}/.config" "${HOME}/.flutter"
-    # The image symlink bin/cache/lockfile -> /tmp/flutter-cache.lock.
-    # A file bind-mount is EROFS under --read-only, so the target lives on tmpfs.
-    if [ -L /opt/flutter/bin/cache/lockfile ]; then
-        touch /tmp/flutter-cache.lock
-        chmod 666 /tmp/flutter-cache.lock 2>/dev/null || true
-    fi
-    # Stamp files are symlinks into this directory. Seed them from the
-    # precached copies so Flutter does not treat every artifact as missing.
-    mkdir -p /tmp/flutter-stamps
-    if [ -d /opt/flutter-stamps ]; then
-        cp -a /opt/flutter-stamps/. /tmp/flutter-stamps/ 2>/dev/null || true
-    fi
-    chmod -R a+rwX /tmp/flutter-stamps 2>/dev/null || true
+    # bin/cache/lockfile and *.stamp are symlinks into tmpfs (read-only rootfs). Seed them.
+    . /usr/local/lib/apk-factory/flutter-bootstrap.sh
     echo "[entrypoint] Flutter   : ${FLUTTER_HOME}"
 fi
 
