@@ -15,6 +15,7 @@ concurrency:
 jobs:
   checks:
     name: Typecheck and unit tests
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
@@ -48,6 +49,7 @@ jobs:
 
   e2e:
     name: ZIP to debug APK (real build, isolation, emulator)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 180
     permissions:
@@ -231,6 +233,7 @@ jobs:
 
   frameworks:
     name: HTTP Docker ${{ matrix.id }}
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-24.04
     timeout-minutes: 360
     strategy:

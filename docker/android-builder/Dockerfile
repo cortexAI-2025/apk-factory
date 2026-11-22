@@ -111,6 +111,10 @@ RUN wget -q "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-
     && ln -sfn "/opt/gradle-${GRADLE_VERSION}/bin/gradle" /usr/local/bin/gradle \
     && rm /tmp/gradle.zip
 
+# Flutter's first run downloads the Dart SDK with curl. wget is not accepted.
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+    && rm -rf /var/lib/apt/lists/*
+
 # ── Flutter SDK (stable 3.50.1, precached for Android) ───────────────────────
 # The sandbox root filesystem is read-only at build time, so the engine stamp
 # script must exit when bin/cache is not writable and the stamp already exists.
@@ -130,8 +134,8 @@ RUN printf '%s\n' \
     && chmod +x /usr/local/bin/tar \
     && git clone --depth 1 --branch ${FLUTTER_VERSION} https://github.com/flutter/flutter.git ${FLUTTER_HOME} \
     && git config --system --add safe.directory ${FLUTTER_HOME} \
-    && ${FLUTTER_HOME}/bin/flutter config --no-analytics --no-cli-animations \
-    && ${FLUTTER_HOME}/bin/flutter precache --android
+    && CI=true ${FLUTTER_HOME}/bin/flutter config --no-analytics --no-cli-animations \
+    && CI=true ${FLUTTER_HOME}/bin/flutter precache --android
 COPY docker/android-builder/patch-flutter-readonly.js /tmp/patch-flutter-readonly.js
 RUN node /tmp/patch-flutter-readonly.js \
     && rm /tmp/patch-flutter-readonly.js \
