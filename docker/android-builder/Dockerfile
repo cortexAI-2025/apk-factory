@@ -142,6 +142,11 @@ RUN node /tmp/patch-flutter-readonly.js \
     && chmod -R a+rX ${FLUTTER_HOME} \
     && rm -f ${FLUTTER_HOME}/bin/cache/lockfile \
     && ln -s /tmp/flutter-cache.lock ${FLUTTER_HOME}/bin/cache/lockfile \
+    # Make sure the tool snapshot and its stamp exist as REAL files before they are moved
+    # to the seed: a missing flutter_tools.stamp makes Flutter rebuild (and write) at start.
+    && ${FLUTTER_HOME}/bin/flutter --version \
+    && test -s ${FLUTTER_HOME}/bin/cache/flutter_tools.stamp \
+    && test -f ${FLUTTER_HOME}/bin/cache/flutter_tools.snapshot \
     && mkdir -p /opt/flutter-stamps \
     && cd ${FLUTTER_HOME}/bin/cache \
     && for s in *.stamp; do \
@@ -152,7 +157,7 @@ RUN node /tmp/patch-flutter-readonly.js \
     && for name in libimobiledevice libusbmuxd libplist openssl libimobiledeviceglue ios-deploy \
          material_fonts flutter_web_sdk engine_stamp flutter_sdk gradle_wrapper \
          android-sdk android-internal-build-artifacts font-subset flutter_version_check \
-         engine engine-dart-sdk flutter_tools; do \
+         engine engine-dart-sdk; do \
          if [ ! -e "${name}.stamp" ] && [ ! -L "${name}.stamp" ]; then ln -s "/tmp/flutter-stamps/${name}.stamp" "${name}.stamp"; fi; \
        done
 
@@ -174,7 +179,11 @@ RUN groupadd -g 1000 builder \
 
 # ── Flutter health gate: the image build fails if the SDK is incomplete ──────
 # Checked as root and as the unprivileged user that runs builds (fresh /tmp each time).
-RUN FLUTTER_VERSION=${FLUTTER_VERSION} flutter-health \
+# /tmp is emptied before each check: every check must start from the fresh state a new
+# container has, so one check cannot hide what another left behind.
+RUN rm -rf /tmp/flutter-stamps /tmp/flutter-cache.lock \
+    && FLUTTER_VERSION=${FLUTTER_VERSION} flutter-health \
+    && rm -rf /tmp/flutter-stamps /tmp/flutter-cache.lock \
     && su builder -c "FLUTTER_HOME=${FLUTTER_HOME} FLUTTER_VERSION=${FLUTTER_VERSION} /usr/local/bin/flutter-health"
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
