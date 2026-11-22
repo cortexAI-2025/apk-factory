@@ -43,7 +43,7 @@ async function api(route, { method = 'GET', token, body, form, raw } = {}) {
     } catch (err) {
       last = err;
       const msg = String(err && err.cause && (err.cause.code || err.cause.message) || err.message || err);
-      if (form || attempt === 4 || !/fetch failed|ECONNREFUSED|ECONNRESET|EAI_AGAIN|UND_ERR/i.test(`${msg} ${err.message || ''}`)) {
+      if (form || attempt === 4 || !/fetch failed|ECONNREFUSED|ECONNRESET|EPIPE|EAI_AGAIN|UND_ERR/i.test(`${msg} ${err.message || ''}`)) {
         err.message = `${err.message || err}${msg && msg !== err.message ? ` (${msg})` : ''}`;
         throw err;
       }
@@ -72,7 +72,7 @@ async function upload(token, file, name = 'e2e', filename = 'project.zip') {
     } catch (err) {
       last = err;
       const msg = String(err && err.cause && (err.cause.code || err.cause.message) || err.message || err);
-      if (attempt === 4 || !/fetch failed|ECONNREFUSED|ECONNRESET|EAI_AGAIN|UND_ERR/i.test(msg)) throw err;
+      if (attempt === 4 || !/fetch failed|ECONNREFUSED|ECONNRESET|EPIPE|EAI_AGAIN|UND_ERR/i.test(`${msg} ${err.message || ""}`)) throw err;
       await new Promise((r) => setTimeout(r, 1000 * attempt));
     }
   }
