@@ -184,7 +184,10 @@ RUN groupadd -g 1000 builder \
 RUN rm -rf /tmp/flutter-stamps /tmp/flutter-cache.lock \
     && FLUTTER_VERSION=${FLUTTER_VERSION} flutter-health \
     && rm -rf /tmp/flutter-stamps /tmp/flutter-cache.lock \
-    && su builder -c "FLUTTER_HOME=${FLUTTER_HOME} FLUTTER_VERSION=${FLUTTER_VERSION} /usr/local/bin/flutter-health"
+    && su builder -c "FLUTTER_HOME=${FLUTTER_HOME} FLUTTER_VERSION=${FLUTTER_VERSION} /usr/local/bin/flutter-health" \
+    # Leave /tmp as a fresh container expects it: files left by the builder check would be
+    # unwritable by root at run time (fs.protected_regular on sticky /tmp).
+    && rm -rf /tmp/flutter-stamps /tmp/flutter-cache.lock
 
 # ── Entrypoint ────────────────────────────────────────────────────────────────
 COPY docker/android-builder/entrypoint.sh /usr/local/bin/entrypoint.sh

@@ -141,3 +141,15 @@ test('health check fails when the tool snapshot is missing', (t) => {
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /flutter_tools\.snapshot is missing/);
 });
+
+// Regression (CI run on c91601b, HTTP Docker flutter): the toolchain step died with
+// "cannot create /tmp/flutter-cache.lock: Permission denied" because a lock file left in the
+// image by another user cannot be opened for writing by root (fs.protected_regular).
+test('bootstrap and health survive a lock file that cannot be created', (t) => {
+  const s = sdk(t);
+  const env = { ...s.env, FLUTTER_LOCK_FILE: '/proc/no-such-dir/flutter-cache.lock' };
+  const b = sh('flutter-bootstrap.sh', env);
+  assert.equal(b.status, 0, b.stderr);
+  const h = sh('flutter-health.sh', env);
+  assert.equal(h.status, 0, h.stderr);
+});

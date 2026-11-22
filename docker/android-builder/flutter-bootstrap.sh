@@ -22,6 +22,7 @@ if [ -d "$FLUTTER_STAMP_SEED" ]; then
 fi
 chmod -R a+rwX "$FLUTTER_STAMP_DIR" 2>/dev/null || true
 if [ -L "$FLUTTER_HOME/bin/cache/lockfile" ]; then
-  : >> "$FLUTTER_LOCK_FILE" 2>/dev/null || true
+  # touch, not `: >>`: a failed redirection on a special builtin aborts a POSIX sh script.
+  touch "$FLUTTER_LOCK_FILE" 2>/dev/null || true
   chmod 666 "$FLUTTER_LOCK_FILE" 2>/dev/null || true
 fi
