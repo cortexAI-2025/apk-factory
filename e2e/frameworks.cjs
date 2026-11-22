@@ -322,6 +322,8 @@ async function runVariant(spec, token, projectId, variant) {
   if (done.status !== 'SUCCESS') {
     // The API logs are already redacted by the worker. Show the cause in the CI log itself
     // (the uploaded evidence zip is not always reachable).
+    const cause = logs.split('\n').filter((l) => /CXX\d+|cmake|ninja|\bndk\b|error:|fatal error|undefined reference|What went wrong|Could not (resolve|find|determine)|\bFAILED\b|not found|No such file/i.test(l)).slice(0, 120);
+    console.log(`--- ${spec.id} ${variant}: lines that name the cause (CMake/NDK/compiler/resolution) ---\n${cause.join('\n')}\n--- end ---`);
     console.log(`--- ${spec.id} ${variant}: last build log lines ---\n${logs.split('\n').slice(-80).join('\n')}\n--- end ---`);
     row.error = done.errorMessage || '';
     REPORT.push(row);
