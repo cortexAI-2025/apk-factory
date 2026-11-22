@@ -30,21 +30,21 @@ export const capacitorEngine: BuildEngine = {
     const gradleRoot = ctx.gradleRoot || 'android';
     const task = resolveGradleTask(ctx.buildType);
     const gradleInvocation = [
-      './gradlew', task, '--no-daemon', '--stacktrace', '--console=plain', extraGradleArgs,
+      'bash', './gradlew', task, '--no-daemon', '--stacktrace', '--console=plain', extraGradleArgs,
     ].filter(Boolean).join(' ');
 
     const script = [
       'set -euo pipefail',
       `echo "[engine:capacitor] package manager: ${pm}"`,
       installCommand(pm),
-      'if [ ! -x android/gradlew ]; then',
+      'if [ ! -f android/gradlew ]; then',
       '  echo "[engine:capacitor] android/ missing — npx cap add android"',
       '  npx cap add android',
       'fi',
       'npx cap sync android',
       `node -e ${JSON.stringify(alignNdk(gradleRoot))}`,
       `cd ${gradleRoot}`,
-      'chmod +x ./gradlew',
+      'chmod +x ./gradlew 2>/dev/null || true',
       gradleInvocation,
     ].join('\n');
 

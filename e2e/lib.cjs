@@ -5,7 +5,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { execFileSync } = require('node:child_process');
 
-const API = (process.env.E2E_API || 'http://localhost:4000').replace(/\/$/, '');
+const API = (process.env.E2E_API || 'http://127.0.0.1:4000').replace(/\/$/, '');
 const WEB = (process.env.E2E_WEB || 'http://localhost:3000').replace(/\/$/, '');
 const OUT = path.resolve(process.env.E2E_OUT || path.join(os.tmpdir(), 'apk-factory-e2e'));
 const REF_ZIP = path.resolve(process.env.E2E_ZIP || path.join(__dirname, '..', 'examples', 'reference-android.zip'));
@@ -42,8 +42,11 @@ async function api(route, { method = 'GET', token, body, form, raw } = {}) {
       return { status: res.status, body: json };
     } catch (err) {
       last = err;
-      const msg = String(err && err.cause && err.cause.code || err.message || err);
-      if (attempt === 4 || !/fetch failed|ECONNREFUSED|ECONNRESET|EAI_AGAIN|UND_ERR/i.test(msg)) throw err;
+      const msg = String(err && err.cause && (err.cause.code || err.cause.message) || err.message || err);
+      if (form || attempt === 4 || !/fetch failed|ECONNREFUSED|ECONNRESET|EAI_AGAIN|UND_ERR/i.test(`${msg} ${err.message || ''}`)) {
+        err.message = `${err.message || err}${msg && msg !== err.message ? ` (${msg})` : ''}`;
+        throw err;
+      }
       await new Promise((r) => setTimeout(r, 1000 * attempt));
     }
   }
@@ -59,10 +62,21 @@ async function register(prefix) {
 }
 
 async function upload(token, file, name = 'e2e', filename = 'project.zip') {
-  const form = new FormData();
-  form.append('file', new Blob([fs.readFileSync(file)]), filename);
-  form.append('name', name);
-  return api('/projects/upload', { method: 'POST', token, form });
+  let last;
+  for (let attempt = 1; attempt <= 4; attempt++) {
+    const form = new FormData();
+    form.append('file', new Blob([fs.readFileSync(file)]), filename);
+    form.append('name', name);
+    try {
+      return await api('/projects/upload', { method: 'POST', token, form });
+    } catch (err) {
+      last = err;
+      const msg = String(err && err.cause && (err.cause.code || err.cause.message) || err.message || err);
+      if (attempt === 4 || !/fetch failed|ECONNREFUSED|ECONNRESET|EAI_AGAIN|UND_ERR/i.test(msg)) throw err;
+      await new Promise((r) => setTimeout(r, 1000 * attempt));
+    }
+  }
+  throw last;
 }
 
 async function waitBuild(token, projectId, buildId, timeoutMs = Number(process.env.E2E_TIMEOUT_MS || 1500000)) {

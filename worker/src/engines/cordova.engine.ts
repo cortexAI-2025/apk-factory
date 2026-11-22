@@ -36,7 +36,7 @@ export const cordovaEngine: BuildEngine = {
       'set -euo pipefail',
       `echo "[engine:cordova] package manager: ${pm}"`,
       installCommand(pm),
-      'if [ ! -x platforms/android/gradlew ]; then',
+      'if [ ! -f platforms/android/gradlew ]; then',
       '  echo "[engine:cordova] platforms/android missing — cordova platform add android"',
       '  npx cordova platform add android',
       'fi',

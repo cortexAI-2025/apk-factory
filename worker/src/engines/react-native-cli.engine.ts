@@ -25,7 +25,7 @@ export const reactNativeCliEngine: BuildEngine = {
     const gradleRoot = ctx.gradleRoot || 'android';
     const task = resolveGradleTask(ctx.buildType);
     const gradleInvocation = [
-      './gradlew', task, '--no-daemon', '--stacktrace', '--console=plain', extraGradleArgs,
+      'bash', './gradlew', task, '--no-daemon', '--stacktrace', '--console=plain', extraGradleArgs,
     ].filter(Boolean).join(' ');
 
     // The RN template enables Jetifier and a 2G heap. On a 4 GB build
@@ -56,7 +56,7 @@ export const reactNativeCliEngine: BuildEngine = {
       installCommand(pm),
       `node -e ${JSON.stringify(normalize)}`,
       `cd ${gradleRoot}`,
-      'chmod +x ./gradlew',
+      'chmod +x ./gradlew 2>/dev/null || true',
       gradleInvocation,
     ].join('\n');
 

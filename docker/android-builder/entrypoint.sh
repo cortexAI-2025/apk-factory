@@ -57,6 +57,13 @@ if [ -x /opt/flutter/bin/flutter ]; then
         touch /tmp/flutter-cache.lock
         chmod 666 /tmp/flutter-cache.lock 2>/dev/null || true
     fi
+    # Stamp files are symlinks into this directory. Seed them from the
+    # precached copies so Flutter does not treat every artifact as missing.
+    mkdir -p /tmp/flutter-stamps
+    if [ -d /opt/flutter-stamps ]; then
+        cp -a /opt/flutter-stamps/. /tmp/flutter-stamps/ 2>/dev/null || true
+    fi
+    chmod -R a+rwX /tmp/flutter-stamps 2>/dev/null || true
     echo "[entrypoint] Flutter   : ${FLUTTER_HOME}"
 fi
 

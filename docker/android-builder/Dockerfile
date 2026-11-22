@@ -141,7 +141,20 @@ RUN node /tmp/patch-flutter-readonly.js \
     && rm /tmp/patch-flutter-readonly.js \
     && chmod -R a+rX ${FLUTTER_HOME} \
     && rm -f ${FLUTTER_HOME}/bin/cache/lockfile \
-    && ln -s /tmp/flutter-cache.lock ${FLUTTER_HOME}/bin/cache/lockfile
+    && ln -s /tmp/flutter-cache.lock ${FLUTTER_HOME}/bin/cache/lockfile \
+    && mkdir -p /opt/flutter-stamps \
+    && cd ${FLUTTER_HOME}/bin/cache \
+    && for s in *.stamp; do \
+         [ -e "$s" ] || continue; \
+         if [ ! -L "$s" ]; then mv "$s" "/opt/flutter-stamps/$s"; fi; \
+         ln -sfn "/tmp/flutter-stamps/$s" "$s"; \
+       done \
+    && for name in libimobiledevice libusbmuxd libplist openssl libimobiledeviceglue ios-deploy \
+         material_fonts flutter_web_sdk engine_stamp flutter_sdk gradle_wrapper \
+         android-sdk android-internal-build-artifacts font-subset flutter_version_check \
+         engine engine-dart-sdk flutter_tools; do \
+         if [ ! -e "${name}.stamp" ] && [ ! -L "${name}.stamp" ]; then ln -s "/tmp/flutter-stamps/${name}.stamp" "${name}.stamp"; fi; \
+       done
 
 # ── Non-root user ─────────────────────────────────────────────────────────────
 RUN groupadd -g 1000 builder \

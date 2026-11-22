@@ -257,23 +257,32 @@ function verifyApk(file) {
 function verifyAab(file) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aab-'));
   execFileSync('unzip', ['-qo', file, 'base/manifest/AndroidManifest.xml', '-d', dir]);
-  const manifest = path.join(dir, 'base/manifest/AndroidManifest.xml');
-  const xml = dockerTool(`${BT}/aapt2`, ['dump', 'xmltree', '/in/AndroidManifest.xml'], [`${path.dirname(manifest)}:/in:ro`]);
-  const sign = dockerTool('jarsigner', ['-verify', '-strict', '-certs', `/in/${path.basename(file)}`], [`${path.dirname(file)}:/in:ro`]);
+  const manifest = fs.readFileSync(path.join(dir, 'base/manifest/AndroidManifest.xml'));
+  const strings = [];
+  let cur = '';
+  for (const b of manifest) {
+    if (b >= 0x20 && b <= 0x7e) cur += String.fromCharCode(b);
+    else { if (cur.length >= 2) strings.push(cur); cur = ''; }
+  }
+  if (cur.length >= 2) strings.push(cur);
+  const next = (key) => {
+    const i = strings.indexOf(key);
+    return i >= 0 ? strings[i + 1] || '' : '';
+  };
+  const pkg = next('package');
+  const versionName = next('versionName');
+  const sign = dockerTool('jarsigner', ['-verify', '-certs', '-verbose', `/in/${path.basename(file)}`], [`${path.dirname(file)}:/in:ro`]);
   const signed = sign.code === 0 || sign.code === 4 || /jar verified/i.test(sign.out);
-  const pkg = xml.out.match(/package(?:\([^)]*\))?="([^"]+)"/) || xml.out.match(/package(?:\([^)]*\))?=\(Raw: "([^"]+)"\)/);
-  const versionCode = xml.out.match(/versionCode(?:\([^)]*\))?=(?:"([^"]+)"|(\d+))/);
-  const versionName = xml.out.match(/versionName(?:\([^)]*\))?="([^"]+)"/);
-  const dn = sign.out.match(/CN=[^\n,]+(?:,\s*O=[^\n,]+)?(?:,\s*C=[^\n]+)?/);
+  const dn = sign.out.match(/X\.509,\s*(CN=[^\n]+)/);
   return {
-    ok: signed && !!(pkg && (pkg[1])),
-    package: pkg?.[1] || '',
-    versionCode: versionCode?.[1] || versionCode?.[2] || '',
-    versionName: versionName?.[1] || '',
-    signer: dn?.[0]?.trim() || '',
+    ok: signed && !!pkg && !pkg.includes(' '),
+    package: pkg.includes(' ') ? '' : pkg,
+    versionCode: '',
+    versionName: /^\d/.test(versionName) ? versionName : '',
+    signer: dn?.[1]?.trim() || '',
     certSha256: '',
     v2: false,
-    detail: `${sign.out}\n${xml.out}`.slice(0, 4000),
+    detail: `${sign.out}\npackage=${pkg}\nversionName=${versionName}`.slice(0, 4000),
   };
 }
 

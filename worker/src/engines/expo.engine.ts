@@ -98,7 +98,7 @@ export const expoEngine: BuildEngine = {
       : `node -e ${JSON.stringify(EXPO_GENERATED_ANDROID_NORMALIZE_JS)}`;
 
     const gradleInvocation = [
-      './gradlew', task, '--no-daemon', '--stacktrace', '--console=plain', extraGradleArgs,
+      'bash', './gradlew', task, '--no-daemon', '--stacktrace', '--console=plain', extraGradleArgs,
     ].filter(Boolean).join(' ');
 
     const script = [
@@ -108,7 +108,7 @@ export const expoEngine: BuildEngine = {
       prebuildStep,
       normalizeStep,
       `cd ${gradleRoot}`,
-      'chmod +x ./gradlew',
+      'chmod +x ./gradlew 2>/dev/null || true',
       gradleInvocation,
     ].filter((line) => line.length > 0).join('\n');
 
