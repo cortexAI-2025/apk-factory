@@ -97,6 +97,37 @@ function flutterInvocation(ctx: PipelineContext, extraGradleArgs?: string): stri
 
 
 /**
+ * Flutter's template builds with `ndkVersion = flutter.ndkVersion` (3.50.1: 28.2.13676358). The build
+ * image ships one NDK; asking for another makes AGP run `sdkmanager` against the read-only SDK, which
+ * fails with "A problem occurred configuring project ':app'" (CI fddc15b). Same rule as the other
+ * engines: use the newest installed NDK unless the project pins one that is installed.
+ * This function is embedded in a double-quoted shell string: no template literals, no `//` comments.
+ */
+export function alignFlutterNdk(text: string, installed: string[]): string {
+  if (installed.length === 0) return text;
+  const newest = installed.slice().sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))[installed.length - 1];
+  return text.replace(/ndkVersion\s*=?\s*(flutter\.ndkVersion|["'][^"']+["'])/g, (all, v) => {
+    const pinned = /^["']/.test(v) ? v.slice(1, -1) : '';
+    return pinned && installed.includes(pinned) ? all : 'ndkVersion = "' + newest + '"';
+  });
+}
+
+export function flutterNdkAlignShell(): string {
+  const script = [
+    'const fs=require("fs");',
+    `const align=${alignFlutterNdk.toString().replace(/^function\s+\w*/, 'function').replace(/\s*\n\s*/g, ' ')};`,
+    'let installed=[];',
+    'try{installed=fs.readdirSync("/opt/android-sdk/ndk").filter((n)=>fs.existsSync("/opt/android-sdk/ndk/"+n+"/source.properties"));}catch(e){}',
+    'for(const f of ["android/app/build.gradle.kts","android/app/build.gradle"]){',
+    'if(!fs.existsSync(f)) continue;',
+    'const o=fs.readFileSync(f,"utf8"); const n=align(o,installed);',
+    'if(n!==o){fs.writeFileSync(f,n);console.log("[engine:flutter] ndkVersion aligned to the image NDK in "+f);}',
+    '}',
+  ].join('');
+  return `node -e ${JSON.stringify(script)}`;
+}
+
+/**
  * Flutter's Android template builds the Gradle plugin from the SDK as an included build:
  *   includeBuild("$flutterSdkPath/packages/flutter_tools/gradle")
  * Gradle writes `.gradle/` and `build/` inside every included build. The SDK lives under /opt,
@@ -189,6 +220,7 @@ export const flutterEngine: BuildEngine = {
       'fi',
       `node -e ${JSON.stringify(capInside)}`,
       flutterToolsGradleCopyShell(),
+      flutterNdkAlignShell(),
       ...(releaseLike ? [`node -e ${JSON.stringify(stripInside)}`] : []),
       'if [ -f android/gradle.properties ]; then echo "[engine:flutter] $(grep -E "^org\\.gradle\\.jvmargs=" android/gradle.properties || true)"; fi',
       'flutter pub get',

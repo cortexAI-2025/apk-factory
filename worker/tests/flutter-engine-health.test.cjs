@@ -52,3 +52,34 @@ test('the build script applies the copy after flutter create and before pub get 
   const i = command.indexOf('writable copy');
   assert.ok(i > command.indexOf('flutter create') && i < command.indexOf('flutter pub get') && i < command.indexOf('flutter build apk'));
 });
+
+// Regression (CI run 45019917174, HTTP Docker flutter): "A problem occurred configuring project ':app'
+// > Process sdkmanager finished with non-zero exit value 1". Flutter 3.50.1 asks for NDK 28.2.13676358,
+// the image has 27.1.12297006 and its SDK is read-only.
+const { alignFlutterNdk, flutterNdkAlignShell } = require('../dist/engines/flutter.engine');
+const NDK = '27.1.12297006';
+
+test('flutter.ndkVersion (Kotlin and Groovy) becomes the installed NDK', () => {
+  assert.equal(alignFlutterNdk('    ndkVersion = flutter.ndkVersion\n', [NDK]), `    ndkVersion = "${NDK}"\n`);
+  assert.equal(alignFlutterNdk('    ndkVersion flutter.ndkVersion\n', [NDK]), `    ndkVersion = "${NDK}"\n`);
+});
+test('a pinned NDK that is installed is kept, one that is not is replaced', () => {
+  const pinned = `ndkVersion = "${NDK}"`;
+  assert.equal(alignFlutterNdk(pinned, [NDK, '26.1.10909125']), pinned);
+  assert.equal(alignFlutterNdk('ndkVersion = "25.0.0"', [NDK]), pinned);
+});
+test('nothing changes when no NDK is installed', () => {
+  assert.equal(alignFlutterNdk('ndkVersion = flutter.ndkVersion', []), 'ndkVersion = flutter.ndkVersion');
+});
+test('the shell step rewrites the workspace gradle file and runs before pub get / build', (t) => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'fndk-'));
+  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
+  fs.mkdirSync(path.join(dir, 'android/app'), { recursive: true });
+  const f = path.join(dir, 'android/app/build.gradle.kts');
+  fs.writeFileSync(f, 'android { ndkVersion = flutter.ndkVersion }\n');
+  execFileSync('bash', ['-c', flutterNdkAlignShell()], { cwd: dir, encoding: 'utf8' }); // no /opt/android-sdk here: no-op, must not crash
+  assert.match(fs.readFileSync(f, 'utf8'), /flutter\.ndkVersion/);
+  const { command } = flutterEngine.composeCommand({ buildType: 'DEBUG', packageManager: 'npm', buildSystemInfo: {} });
+  const i = command.indexOf('aligned to the image NDK');
+  assert.ok(i > command.indexOf('flutter create') && i < command.indexOf('flutter pub get') && i < command.indexOf('flutter build apk'));
+});
